@@ -54,9 +54,29 @@ function setH3Index(res::Int, baseCell::Int, initDigit::Direction)::H3Index
 end
 setH3Index(res::Int, baseCell::Int, initDigit::Int) = setH3Index(res, baseCell, Direction(initDigit))
 
+"""
+    getResolution(h::H3Index) -> Int
+
+Get the resolution of an H3 index.
+
+See also the H3 C API: [`getResolution`](https://h3geo.org/docs/api/inspection#getresolution)
+"""
 getResolution(h::H3Index)::Int = h3_get_resolution(h)
+
+"""
+    getBaseCellNumber(h::H3Index) -> Int
+
+Get the base cell number (0–121) of an H3 index.
+
+See also the H3 C API: [`getBaseCellNumber`](https://h3geo.org/docs/api/inspection#getbasecellnumber)
+"""
 getBaseCellNumber(h::H3Index)::Int = h3_get_base_cell(h)
 
+"""
+    getIndexDigit(h::H3Index, res::Int) -> Tuple{H3Error, Int}
+
+Get the index digit at resolution `res` (1-indexed). Returns `(error, digit)`.
+"""
 function getIndexDigit(h::H3Index, res::Int)::Tuple{H3Error, Int}
     if res < 1 || res > MAX_H3_RES
         return (E_RES_DOMAIN, 0)
@@ -112,6 +132,13 @@ function _hasDeletedSubsequence(h::H3Index, base_cell::Int)::Bool
     return false
 end
 
+"""
+    isValidCell(h::H3Index) -> Bool
+
+Check whether an H3 index represents a valid cell.
+
+See also the H3 C API: [`isValidCell`](https://h3geo.org/docs/api/inspection#isvalidcell)
+"""
 function isValidCell(h::H3Index)::Bool
     _hasGoodTopBits(h) || return false
     res = h3_get_resolution(h)
@@ -123,11 +150,25 @@ function isValidCell(h::H3Index)::Bool
     return true
 end
 
+"""
+    isPentagon(h::H3Index) -> Bool
+
+Check whether an H3 index represents a pentagon cell.
+
+See also the H3 C API: [`isPentagon`](https://h3geo.org/docs/api/inspection#ispentagon)
+"""
 function isPentagon(h::H3Index)::Bool
     return _isBaseCellPentagon(h3_get_base_cell(h)) &&
            _h3LeadingNonZeroDigit(h) == CENTER_DIGIT
 end
 
+"""
+    isResClassIII(h::H3Index) -> Bool
+
+Check whether the resolution of an H3 index is Class III.
+
+See also the H3 C API: [`isResClassIII`](https://h3geo.org/docs/api/inspection#isresclassiii)
+"""
 isResClassIII(h::H3Index)::Bool = h3_get_resolution(h) % 2 != 0
 
 # Rotation functions
@@ -306,6 +347,13 @@ function _h3ToFaceIjk(h::H3Index)::Tuple{H3Error, FaceIJK}
 end
 
 # Public API functions
+"""
+    latLngToCell(g::LatLng, res::Int) -> Tuple{H3Error, H3Index}
+
+Convert a latitude/longitude pair to the containing H3 cell at the given resolution.
+
+See also the H3 C API: [`latLngToCell`](https://h3geo.org/docs/api/indexing#latlngtocell)
+"""
 function latLngToCell(g::LatLng, res::Int)::Tuple{H3Error, H3Index}
     if res < 0 || res > MAX_H3_RES
         return (E_RES_DOMAIN, H3_NULL)
@@ -322,6 +370,13 @@ function latLngToCell(g::LatLng, res::Int)::Tuple{H3Error, H3Index}
     end
 end
 
+"""
+    cellToLatLng(h::H3Index) -> Tuple{H3Error, LatLng}
+
+Convert an H3 cell to its center latitude/longitude.
+
+See also the H3 C API: [`cellToLatLng`](https://h3geo.org/docs/api/indexing#celltolatlng)
+"""
 function cellToLatLng(h::H3Index)::Tuple{H3Error, LatLng}
     err, fijk = _h3ToFaceIjk(h)
     if err != E_SUCCESS
@@ -331,6 +386,13 @@ function cellToLatLng(h::H3Index)::Tuple{H3Error, LatLng}
     return (E_SUCCESS, g)
 end
 
+"""
+    cellToBoundary(h::H3Index) -> Tuple{H3Error, CellBoundary}
+
+Compute the cell boundary (vertices) for an H3 cell.
+
+See also the H3 C API: [`cellToBoundary`](https://h3geo.org/docs/api/indexing#celltoboundary)
+"""
 function cellToBoundary(h::H3Index)::Tuple{H3Error, CellBoundary}
     err, fijk = _h3ToFaceIjk(h)
     if err != E_SUCCESS
@@ -344,6 +406,13 @@ function cellToBoundary(h::H3Index)::Tuple{H3Error, CellBoundary}
     return (E_SUCCESS, cb)
 end
 
+"""
+    cellToParent(h::H3Index, parentRes::Int) -> Tuple{H3Error, H3Index}
+
+Get the parent cell at the given coarser resolution.
+
+See also the H3 C API: [`cellToParent`](https://h3geo.org/docs/api/hierarchy#celltoparent)
+"""
 function cellToParent(h::H3Index, parentRes::Int)::Tuple{H3Error, H3Index}
     childRes = h3_get_resolution(h)
     if parentRes < 0 || parentRes > MAX_H3_RES
@@ -362,6 +431,13 @@ function cellToParent(h::H3Index, parentRes::Int)::Tuple{H3Error, H3Index}
     return (E_SUCCESS, parentH)
 end
 
+"""
+    cellToChildrenSize(h::H3Index, childRes::Int) -> Tuple{H3Error, Int64}
+
+Get the number of children at the given finer resolution.
+
+See also the H3 C API: [`cellToChildrenSize`](https://h3geo.org/docs/api/hierarchy#celltochildrensize)
+"""
 function cellToChildrenSize(h::H3Index, childRes::Int)::Tuple{H3Error, Int64}
     parentRes = h3_get_resolution(h)
     if childRes < parentRes || childRes > MAX_H3_RES
@@ -394,6 +470,13 @@ function _zeroIndexDigits(h::H3Index, start::Int, end_::Int)::H3Index
     return h & m
 end
 
+"""
+    cellToCenterChild(h::H3Index, childRes::Int) -> Tuple{H3Error, H3Index}
+
+Get the center child cell at the given finer resolution.
+
+See also the H3 C API: [`cellToCenterChild`](https://h3geo.org/docs/api/hierarchy#celltocenterchild)
+"""
 function cellToCenterChild(h::H3Index, childRes::Int)::Tuple{H3Error, H3Index}
     parentRes = h3_get_resolution(h)
     if childRes < parentRes || childRes > MAX_H3_RES
@@ -404,14 +487,35 @@ function cellToCenterChild(h::H3Index, childRes::Int)::Tuple{H3Error, H3Index}
     return (E_SUCCESS, h)
 end
 
+"""
+    maxFaceCount(h::H3Index) -> Tuple{H3Error, Int}
+
+Get the maximum number of icosahedron faces a cell may intersect.
+
+See also the H3 C API: [`maxFaceCount`](https://h3geo.org/docs/api/inspection#maxfacecount)
+"""
 function maxFaceCount(h::H3Index)::Tuple{H3Error, Int}
     return (E_SUCCESS, isPentagon(h) ? 5 : 2)
 end
 
+"""
+    pentagonCount() -> Int
+
+Return the number of pentagon cells per resolution (always 12).
+
+See also the H3 C API: [`pentagonCount`](https://h3geo.org/docs/api/misc#pentagoncount)
+"""
 function pentagonCount()::Int
     return NUM_PENTAGONS
 end
 
+"""
+    getPentagons(res::Int) -> Tuple{H3Error, Vector{H3Index}}
+
+Get all pentagon cell indexes at the given resolution.
+
+See also the H3 C API: [`getPentagons`](https://h3geo.org/docs/api/misc#getpentagons)
+"""
 function getPentagons(res::Int)::Tuple{H3Error, Vector{H3Index}}
     if res < 0 || res > MAX_H3_RES
         return (E_RES_DOMAIN, H3Index[])
@@ -429,6 +533,13 @@ function res0CellCount_h3()::Int
     return NUM_BASE_CELLS
 end
 
+"""
+    getRes0Cells() -> Tuple{H3Error, Vector{H3Index}}
+
+Get all resolution 0 (base cell) indexes.
+
+See also the H3 C API: [`getRes0Cells`](https://h3geo.org/docs/api/misc#getres0cells)
+"""
 function getRes0Cells()::Tuple{H3Error, Vector{H3Index}}
     out = Vector{H3Index}(undef, NUM_BASE_CELLS)
     for bc in 0:(NUM_BASE_CELLS - 1)
@@ -440,6 +551,13 @@ function getRes0Cells()::Tuple{H3Error, Vector{H3Index}}
     return (E_SUCCESS, out)
 end
 
+"""
+    stringToH3(str::AbstractString) -> Tuple{H3Error, H3Index}
+
+Parse a hexadecimal string to an H3 index.
+
+See also the H3 C API: [`stringToH3`](https://h3geo.org/docs/api/inspection#stringtoh3)
+"""
 function stringToH3(str::AbstractString)::Tuple{H3Error, H3Index}
     try
         h = parse(UInt64, str, base=16)
@@ -449,10 +567,22 @@ function stringToH3(str::AbstractString)::Tuple{H3Error, H3Index}
     end
 end
 
+"""
+    h3ToString(h::H3Index) -> String
+
+Convert an H3 index to its hexadecimal string representation.
+
+See also the H3 C API: [`h3ToString`](https://h3geo.org/docs/api/inspection#h3tostring)
+"""
 function h3ToString(h::H3Index)::String
     return string(h, base=16)
 end
 
+"""
+    constructCell(res::Int, baseCellNumber::Int, digits::Vector{Int}) -> Tuple{H3Error, H3Index}
+
+Construct an H3 cell index from resolution, base cell number, and digit array.
+"""
 function constructCell(res::Int, baseCellNumber::Int, digits::Vector{Int})::Tuple{H3Error, H3Index}
     if res < 0 || res > MAX_H3_RES
         return (E_RES_DOMAIN, H3_NULL)
@@ -485,6 +615,13 @@ function constructCell(res::Int, baseCellNumber::Int, digits::Vector{Int})::Tupl
     return (E_SUCCESS, h)
 end
 
+"""
+    getIcosahedronFaces(h::H3Index) -> Tuple{H3Error, Vector{Int}}
+
+Get all icosahedron faces intersected by a cell.
+
+See also the H3 C API: [`getIcosahedronFaces`](https://h3geo.org/docs/api/inspection#geticosahedronfaces)
+"""
 function getIcosahedronFaces(h::H3Index)::Tuple{H3Error, Vector{Int}}
     res = h3_get_resolution(h)
     isPent = isPentagon(h)
@@ -536,6 +673,13 @@ function getIcosahedronFaces(h::H3Index)::Tuple{H3Error, Vector{Int}}
 end
 
 # Compact/uncompact operations
+"""
+    compactCells(h3Set::Vector{H3Index}) -> Tuple{H3Error, Vector{H3Index}}
+
+Compact a set of cells into the smallest equivalent set.
+
+See also the H3 C API: [`compactCells`](https://h3geo.org/docs/api/hierarchy#compactcells)
+"""
 function compactCells(h3Set::Vector{H3Index})::Tuple{H3Error, Vector{H3Index}}
     numHexes = length(h3Set)
     if numHexes == 0
@@ -614,6 +758,13 @@ function compactCells(h3Set::Vector{H3Index})::Tuple{H3Error, Vector{H3Index}}
     return (E_SUCCESS, compactedSet)
 end
 
+"""
+    uncompactCellsSize(compactedSet::Vector{H3Index}, res::Int) -> Tuple{H3Error, Int64}
+
+Get the number of cells that would result from uncompacting to the given resolution.
+
+See also the H3 C API: [`uncompactCellsSize`](https://h3geo.org/docs/api/hierarchy#uncompactcellssize)
+"""
 function uncompactCellsSize(compactedSet::Vector{H3Index}, res::Int)::Tuple{H3Error, Int64}
     numOut = Int64(0)
     for h in compactedSet
@@ -629,6 +780,13 @@ function uncompactCellsSize(compactedSet::Vector{H3Index}, res::Int)::Tuple{H3Er
     return (E_SUCCESS, numOut)
 end
 
+"""
+    uncompactCells(compactedSet::Vector{H3Index}, res::Int) -> Tuple{H3Error, Vector{H3Index}}
+
+Uncompact a set of cells to the given resolution.
+
+See also the H3 C API: [`uncompactCells`](https://h3geo.org/docs/api/hierarchy#uncompactcells)
+"""
 function uncompactCells(compactedSet::Vector{H3Index}, res::Int)::Tuple{H3Error, Vector{H3Index}}
     err, totalSize = uncompactCellsSize(compactedSet, res)
     if err != E_SUCCESS
@@ -675,6 +833,13 @@ function _uncompactCellRecursive!(h::H3Index, targetRes::Int, out::Vector{H3Inde
     end
 end
 
+"""
+    cellToChildPos(child::H3Index, parentRes::Int) -> Tuple{H3Error, Int64}
+
+Get the position of a child cell within its parent's ordered children.
+
+See also the H3 C API: [`cellToChildPos`](https://h3geo.org/docs/api/hierarchy#celltochildpos)
+"""
 function cellToChildPos(child::H3Index, parentRes::Int)::Tuple{H3Error, Int64}
     childRes = h3_get_resolution(child)
     err, originalParent = cellToParent(child, parentRes)
@@ -720,6 +885,13 @@ function cellToChildPos(child::H3Index, parentRes::Int)::Tuple{H3Error, Int64}
     return (E_SUCCESS, pos)
 end
 
+"""
+    childPosToCell(childPos::Int64, parent::H3Index, childRes::Int) -> Tuple{H3Error, H3Index}
+
+Convert a child position to the corresponding child cell.
+
+See also the H3 C API: [`childPosToCell`](https://h3geo.org/docs/api/hierarchy#childpostocell)
+"""
 function childPosToCell(childPos::Int64, parent::H3Index, childRes::Int)::Tuple{H3Error, H3Index}
     if childRes < 0 || childRes > MAX_H3_RES
         return (E_RES_DOMAIN, H3_NULL)
@@ -771,6 +943,13 @@ function childPosToCell(childPos::Int64, parent::H3Index, childRes::Int)::Tuple{
     return (E_SUCCESS, child)
 end
 
+"""
+    cellToChildren(h::H3Index, childRes::Int) -> Tuple{H3Error, Vector{H3Index}}
+
+Get all children of a cell at a given finer resolution.
+
+See also the H3 C API: [`cellToChildren`](https://h3geo.org/docs/api/hierarchy#celltochildren)
+"""
 function cellToChildren(h::H3Index, childRes::Int)::Tuple{H3Error, Vector{H3Index}}
     err, numChildren = cellToChildrenSize(h, childRes)
     if err != E_SUCCESS
@@ -787,6 +966,13 @@ function cellToChildren(h::H3Index, childRes::Int)::Tuple{H3Error, Vector{H3Inde
     return (E_SUCCESS, out)
 end
 
+"""
+    isValidIndex(h::H3Index) -> Bool
+
+Check whether an H3 index is valid (cell, directed edge, or vertex).
+
+See also the H3 C API: [`isValidIndex`](https://h3geo.org/docs/api/inspection#isvalidindex)
+"""
 function isValidIndex(h::H3Index)::Bool
     return isValidCell(h) || isValidDirectedEdge(h) || isValidVertex(h)
 end

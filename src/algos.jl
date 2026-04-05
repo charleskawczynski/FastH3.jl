@@ -57,11 +57,13 @@ const NEW_ADJUSTMENT_III = Direction[
 ]
 
 """
-    h3NeighborRotations(origin, dir, rotations) -> (H3Error, H3Index, Int)
+    h3NeighborRotations(origin::H3Index, dir::Direction, rotations::Int) -> (H3Error, H3Index, Int)
 
 Compute the neighbor of `origin` in direction `dir`, applying `rotations` initial
-CCW 60° rotations. Returns the error status, the neighbor cell, and the updated
-rotation count for subsequent ring traversal.
+CCW 60° rotations. Returns the error code, the neighbor cell, and the updated
+rotation count.
+
+Translated from C source: [`algos.c`](https://github.com/uber/h3/blob/master/src/h3lib/lib/algos.c)
 """
 function h3NeighborRotations(origin::H3Index, dir::Direction, rotations::Int)::Tuple{H3Error, H3Index, Int}
     if dir >= INVALID_DIGIT
@@ -173,6 +175,14 @@ function h3NeighborRotations(origin::H3Index, dir::Direction, rotations::Int)::T
     return (E_SUCCESS, current, rotations)
 end
 
+"""
+    maxGridDiskSize(k::Int) -> (H3Error, Int64)
+
+Get the maximum number of cells that can be returned by [`gridDisk`](@ref) with radius `k`.
+Formula: `3k² + 3k + 1`.
+
+See also the H3 C API: [`maxGridDiskSize`](https://h3geo.org/docs/api/traversal#maxgriddisksize)
+"""
 function maxGridDiskSize(k::Int)::Tuple{H3Error, Int64}
     if k < 0
         return (E_DOMAIN, Int64(0))
@@ -188,6 +198,15 @@ function maxGridRingSize(k::Int)::Tuple{H3Error, Int64}
     return (E_SUCCESS, k == 0 ? Int64(1) : Int64(6) * Int64(k))
 end
 
+"""
+    gridDiskDistancesUnsafe(origin::H3Index, k::Int) -> (H3Error, Vector{H3Index}, Vector{Int})
+
+Produce all cells within grid distance `k` of `origin`, along with their distances.
+Fails with `E_PENTAGON` if a pentagon is encountered. Use [`gridDiskDistances`](@ref) for
+a safe fallback.
+
+See also the H3 C API: [`gridDiskDistancesUnsafe`](https://h3geo.org/docs/api/traversal#griddiskdistancesunsafe)
+"""
 function gridDiskDistancesUnsafe(origin::H3Index, k::Int)::Tuple{H3Error, Vector{H3Index}, Vector{Int}}
     err, maxSize = maxGridDiskSize(k)
     if err != E_SUCCESS
@@ -239,11 +258,25 @@ function gridDiskDistancesUnsafe(origin::H3Index, k::Int)::Tuple{H3Error, Vector
     return (E_SUCCESS, out, distances)
 end
 
+"""
+    gridDiskUnsafe(origin::H3Index, k::Int) -> (H3Error, Vector{H3Index})
+
+Produce all cells within grid distance `k` of `origin`.
+Fails with `E_PENTAGON` if a pentagon is encountered. Use [`gridDisk`](@ref) for
+a safe fallback.
+
+See also the H3 C API: [`gridDiskUnsafe`](https://h3geo.org/docs/api/traversal#gridDiskunsafe)
+"""
 function gridDiskUnsafe(origin::H3Index, k::Int)::Tuple{H3Error, Vector{H3Index}}
     err, out, _ = gridDiskDistancesUnsafe(origin, k)
     return (err, out)
 end
 
+"""
+    gridDiskDistancesSafe(origin::H3Index, k::Int) -> (H3Error, Vector{H3Index}, Vector{Int})
+
+BFS-based safe implementation of [`gridDiskDistances`](@ref) that handles pentagons.
+"""
 function gridDiskDistancesSafe(origin::H3Index, k::Int)::Tuple{H3Error, Vector{H3Index}, Vector{Int}}
     out = H3Index[]
     distances = Int[]
@@ -279,6 +312,15 @@ function gridDiskDistancesSafe(origin::H3Index, k::Int)::Tuple{H3Error, Vector{H
     return (E_SUCCESS, out, distances)
 end
 
+"""
+    gridDisk(origin::H3Index, k::Int) -> (H3Error, Vector{H3Index})
+
+Produce all cells within grid distance `k` of `origin`. Tries the fast
+`gridDiskUnsafe` first and falls back to a safe BFS traversal if pentagons
+are encountered.
+
+See also the H3 C API: [`gridDisk`](https://h3geo.org/docs/api/traversal#griddisk)
+"""
 function gridDisk(origin::H3Index, k::Int)::Tuple{H3Error, Vector{H3Index}}
     err, out = gridDiskUnsafe(origin, k)
     if err == E_SUCCESS
@@ -288,6 +330,14 @@ function gridDisk(origin::H3Index, k::Int)::Tuple{H3Error, Vector{H3Index}}
     return (err2, out2)
 end
 
+"""
+    gridDiskDistances(origin::H3Index, k::Int) -> (H3Error, Vector{H3Index}, Vector{Int})
+
+Produce all cells within grid distance `k` of `origin`, along with their distances.
+Tries the fast unsafe path first and falls back to safe BFS if needed.
+
+See also the H3 C API: [`gridDiskDistances`](https://h3geo.org/docs/api/traversal#griddiskdistances)
+"""
 function gridDiskDistances(origin::H3Index, k::Int)::Tuple{H3Error, Vector{H3Index}, Vector{Int}}
     err, out, dist = gridDiskDistancesUnsafe(origin, k)
     if err == E_SUCCESS
@@ -296,6 +346,14 @@ function gridDiskDistances(origin::H3Index, k::Int)::Tuple{H3Error, Vector{H3Ind
     return gridDiskDistancesSafe(origin, k)
 end
 
+"""
+    gridRingUnsafe(origin::H3Index, k::Int) -> (H3Error, Vector{H3Index})
+
+Produce the cells forming the ring at exactly grid distance `k` from `origin`.
+Fails with `E_PENTAGON` if a pentagon is encountered.
+
+See also the H3 C API: [`gridRingUnsafe`](https://h3geo.org/docs/api/traversal#gridringunsafe)
+"""
 function gridRingUnsafe(origin::H3Index, k::Int)::Tuple{H3Error, Vector{H3Index}}
     if k < 0
         return (E_DOMAIN, H3Index[])
