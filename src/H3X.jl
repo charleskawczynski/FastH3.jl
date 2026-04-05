@@ -1,3 +1,13 @@
+"""
+    H3X
+
+Pure Julia implementation of Uber's [H3](https://h3geo.org/) hexagonal hierarchical
+geospatial indexing system. Provides the complete H3 v4 public API with no C dependencies.
+
+See the [H3 documentation](https://h3geo.org/docs/) for background on the indexing
+system and the [API reference](https://h3geo.org/docs/api/indexing) for the original
+C function signatures.
+"""
 module H3X
 
 # Layer 0: Types and Constants
@@ -37,6 +47,7 @@ export E_SUCCESS, E_FAILED, E_DOMAIN, E_LATLNG_DOMAIN, E_RES_DOMAIN,
        E_RES_MISMATCH, E_MEMORY_ALLOC, E_MEMORY_BOUNDS, E_OPTION_INVALID
 
 # Containment modes
+export ContainmentMode
 export CONTAINMENT_CENTER, CONTAINMENT_FULL, CONTAINMENT_OVERLAPPING,
        CONTAINMENT_OVERLAPPING_BBOX, CONTAINMENT_INVALID
 

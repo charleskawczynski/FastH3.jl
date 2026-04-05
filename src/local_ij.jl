@@ -256,8 +256,12 @@ function _cellToLocalIjk(origin::H3Index, h::H3Index)::Tuple{H3Error, CoordIJK}
 end
 
 """
-Convert a cell to local IJ coordinates relative to an origin cell.
-Both cells must be at the same resolution.
+    cellToLocalIj(origin::H3Index, h::H3Index, mode::UInt32) -> (H3Error, CoordIJ)
+
+Convert cell `h` to local IJ coordinates relative to `origin`. Both cells must be
+at the same resolution.
+
+See also the H3 C API: [`cellToLocalIj`](https://h3geo.org/docs/api/traversal#celltolocalij)
 """
 function cellToLocalIj(origin::H3Index, h::H3Index, mode::UInt32)::Tuple{H3Error, CoordIJ}
     err, ijk = _cellToLocalIjk(origin, h)
@@ -268,8 +272,12 @@ function cellToLocalIj(origin::H3Index, h::H3Index, mode::UInt32)::Tuple{H3Error
 end
 
 """
-Convert local IJ coordinates back to a cell H3Index, using `origin` as the
-local coordinate system anchor.
+    localIjToCell(origin::H3Index, ij::CoordIJ, mode::UInt32) -> (H3Error, H3Index)
+
+Convert local IJ coordinates back to a cell, using `origin` as the coordinate
+system anchor.
+
+See also the H3 C API: [`localIjToCell`](https://h3geo.org/docs/api/traversal#localijtocell)
 """
 function localIjToCell(origin::H3Index, ij::CoordIJ, mode::UInt32)::Tuple{H3Error, H3Index}
     err, offsetIjk = ijToIjk(ij)
@@ -351,7 +359,12 @@ function localIjToCell(origin::H3Index, ij::CoordIJ, mode::UInt32)::Tuple{H3Erro
 end
 
 """
-Compute the grid distance between two H3 cells at the same resolution.
+    gridDistance(origin::H3Index, h3::H3Index) -> (H3Error, Int64)
+
+Compute the grid distance (minimum number of cell steps) between two cells
+at the same resolution.
+
+See also the H3 C API: [`gridDistance`](https://h3geo.org/docs/api/traversal#griddistance)
 """
 function gridDistance(origin::H3Index, h3::H3Index)::Tuple{H3Error, Int64}
     err, ijk = _cellToLocalIjk(origin, h3)
@@ -367,7 +380,11 @@ function gridDistance(origin::H3Index, h3::H3Index)::Tuple{H3Error, Int64}
 end
 
 """
-Number of cells in a grid path between `start` and `end_`.
+    gridPathCellsSize(start::H3Index, end_::H3Index) -> (H3Error, Int64)
+
+Get the number of cells in the grid path between `start` and `end_` (inclusive).
+
+See also the H3 C API: [`gridPathCellsSize`](https://h3geo.org/docs/api/traversal#gridpathcellssize)
 """
 function gridPathCellsSize(start::H3Index, end_::H3Index)::Tuple{H3Error, Int64}
     err, dist = gridDistance(start, end_)
@@ -398,8 +415,12 @@ function _cubeRound(fi::Float64, fj::Float64, fk::Float64)::Tuple{Int32, Int32, 
 end
 
 """
-Compute the grid path (line of cells) between `start_` and `end_`.
-Uses cube coordinate interpolation for correct hex grid line drawing.
+    gridPathCells(start_::H3Index, end_::H3Index) -> (H3Error, Vector{H3Index})
+
+Compute the line of cells between `start_` and `end_` using cube coordinate
+interpolation. The first element is `start_` and the last is `end_`.
+
+See also the H3 C API: [`gridPathCells`](https://h3geo.org/docs/api/traversal#gridpathcells)
 """
 function gridPathCells(start_::H3Index, end_::H3Index)::Tuple{H3Error, Vector{H3Index}}
     err, dist = gridDistance(start_, end_)

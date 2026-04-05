@@ -35,7 +35,11 @@ const _directionForVertexNumPent = Direction[
 ]
 
 """
+    isValidVertex(vertex::H3Index) -> Bool
+
 Check whether an H3 index represents a valid vertex.
+
+See also the H3 C API: [`isValidVertex`](https://h3geo.org/docs/api/vertex#isvalidvertex)
 """
 function isValidVertex(vertex::H3Index)::Bool
     if h3_get_mode(vertex) != H3_VERTEX_MODE
@@ -55,8 +59,11 @@ function isValidVertex(vertex::H3Index)::Bool
 end
 
 """
-Get a vertex H3 index for vertex number `vertexNum` of cell `origin`.
-vertexNum is 0-indexed: 0..4 for pentagons, 0..5 for hexagons.
+    cellToVertex(origin::H3Index, vertexNum::Int) -> (H3Error, H3Index)
+
+Get a vertex H3 index for vertex number `vertexNum` (0-indexed) of cell `origin`.
+
+See also the H3 C API: [`cellToVertex`](https://h3geo.org/docs/api/vertex#celltovertex)
 """
 function cellToVertex(origin::H3Index, vertexNum::Int)::Tuple{H3Error, H3Index}
     if !isValidCell(origin)
@@ -75,8 +82,11 @@ function cellToVertex(origin::H3Index, vertexNum::Int)::Tuple{H3Error, H3Index}
 end
 
 """
-Get all vertex H3 indexes for a cell.
-Returns 5 vertices for pentagons, 6 for hexagons.
+    cellToVertexes(origin::H3Index) -> (H3Error, Vector{H3Index})
+
+Get all vertex H3 indexes for a cell (5 for pentagons, 6 for hexagons).
+
+See also the H3 C API: [`cellToVertexes`](https://h3geo.org/docs/api/vertex#celltovertexes)
 """
 function cellToVertexes(origin::H3Index)::Tuple{H3Error, Vector{H3Index}}
     if !isValidCell(origin)
@@ -98,9 +108,11 @@ function cellToVertexes(origin::H3Index)::Tuple{H3Error, Vector{H3Index}}
 end
 
 """
-Get the latitude/longitude of a vertex.
-Extracts the owner cell and vertex number from the vertex index,
-then looks up the position from the cell's boundary.
+    vertexToLatLng(vertex::H3Index) -> (H3Error, LatLng)
+
+Get the latitude/longitude of a vertex H3 index.
+
+See also the H3 C API: [`vertexToLatLng`](https://h3geo.org/docs/api/vertex#vertextolatlng)
 """
 function vertexToLatLng(vertex::H3Index)::Tuple{H3Error, LatLng}
     if !isValidVertex(vertex)

@@ -2,7 +2,11 @@
 # Translated from H3 library directedEdge.c
 
 """
+    isValidDirectedEdge(edge::H3Index) -> Bool
+
 Check whether an H3 index represents a valid directed edge.
+
+See also the H3 C API: [`isValidDirectedEdge`](https://h3geo.org/docs/api/uniedge#isvaliddirectededge)
 """
 function isValidDirectedEdge(edge::H3Index)::Bool
     if h3_get_mode(edge) != H3_DIRECTEDEDGE_MODE
@@ -18,7 +22,11 @@ function isValidDirectedEdge(edge::H3Index)::Bool
 end
 
 """
-Get the origin cell from a directed edge.
+    getDirectedEdgeOrigin(edge::H3Index) -> (H3Error, H3Index)
+
+Get the origin cell of a directed edge.
+
+See also the H3 C API: [`getDirectedEdgeOrigin`](https://h3geo.org/docs/api/uniedge#getdirectededgeorigin)
 """
 function getDirectedEdgeOrigin(edge::H3Index)::Tuple{H3Error, H3Index}
     if h3_get_mode(edge) != H3_DIRECTEDEDGE_MODE
@@ -30,8 +38,12 @@ function getDirectedEdgeOrigin(edge::H3Index)::Tuple{H3Error, H3Index}
 end
 
 """
-Get the destination cell from a directed edge by finding the neighbor
-of the origin in the encoded direction.
+    getDirectedEdgeDestination(edge::H3Index) -> (H3Error, H3Index)
+
+Get the destination cell of a directed edge by finding the neighbor of the origin
+in the encoded direction.
+
+See also the H3 C API: [`getDirectedEdgeDestination`](https://h3geo.org/docs/api/uniedge#getdirectededgedestination)
 """
 function getDirectedEdgeDestination(edge::H3Index)::Tuple{H3Error, H3Index}
     if h3_get_mode(edge) != H3_DIRECTEDEDGE_MODE
@@ -53,7 +65,11 @@ function getDirectedEdgeDestination(edge::H3Index)::Tuple{H3Error, H3Index}
 end
 
 """
-Get both the origin and destination cells from a directed edge.
+    directedEdgeToCells(edge::H3Index) -> (H3Error, H3Index, H3Index)
+
+Get both the origin and destination cells of a directed edge.
+
+See also the H3 C API: [`directedEdgeToCells`](https://h3geo.org/docs/api/uniedge#directededgetocells)
 """
 function directedEdgeToCells(edge::H3Index)::Tuple{H3Error, H3Index, H3Index}
     err1, origin = getDirectedEdgeOrigin(edge)
@@ -68,7 +84,11 @@ function directedEdgeToCells(edge::H3Index)::Tuple{H3Error, H3Index, H3Index}
 end
 
 """
+    areNeighborCells(origin::H3Index, destination::H3Index) -> (H3Error, Bool)
+
 Determine whether two H3 cells are neighbors (share an edge).
+
+See also the H3 C API: [`areNeighborCells`](https://h3geo.org/docs/api/uniedge#areneighborcells)
 """
 function areNeighborCells(origin::H3Index, destination::H3Index)::Tuple{H3Error, Bool}
     if h3_get_mode(origin) != H3_CELL_MODE
@@ -105,8 +125,11 @@ function areNeighborCells(origin::H3Index, destination::H3Index)::Tuple{H3Error,
 end
 
 """
-Create a directed edge H3 index from an origin cell to a destination cell.
-The cells must be neighbors.
+    cellsToDirectedEdge(origin::H3Index, destination::H3Index) -> (H3Error, H3Index)
+
+Create a directed edge H3 index from an origin cell to a neighboring destination cell.
+
+See also the H3 C API: [`cellsToDirectedEdge`](https://h3geo.org/docs/api/uniedge#cellstodirectededge)
 """
 function cellsToDirectedEdge(origin::H3Index, destination::H3Index)::Tuple{H3Error, H3Index}
     err, isNeighbor = areNeighborCells(origin, destination)
@@ -136,8 +159,11 @@ function cellsToDirectedEdge(origin::H3Index, destination::H3Index)::Tuple{H3Err
 end
 
 """
-Get all directed edges originating from a cell.
-Returns 6 edges for hexagons, 5 for pentagons.
+    originToDirectedEdges(origin::H3Index) -> (H3Error, Vector{H3Index})
+
+Get all directed edges originating from a cell (6 for hexagons, 5 for pentagons).
+
+See also the H3 C API: [`originToDirectedEdges`](https://h3geo.org/docs/api/uniedge#origintodirectededges)
 """
 function originToDirectedEdges(origin::H3Index)::Tuple{H3Error, Vector{H3Index}}
     if !isValidCell(origin)
@@ -160,8 +186,11 @@ function originToDirectedEdges(origin::H3Index)::Tuple{H3Error, Vector{H3Index}}
 end
 
 """
-Get the boundary of a directed edge (the vertices shared between origin
-and destination cells).
+    directedEdgeToBoundary(edge::H3Index) -> (H3Error, CellBoundary)
+
+Get the boundary vertices shared between the origin and destination cells of a directed edge.
+
+See also the H3 C API: [`directedEdgeToBoundary`](https://h3geo.org/docs/api/uniedge#directededgetoboundary)
 """
 function directedEdgeToBoundary(edge::H3Index)::Tuple{H3Error, CellBoundary}
     err, origin, dest = directedEdgeToCells(edge)
@@ -198,7 +227,9 @@ function directedEdgeToBoundary(edge::H3Index)::Tuple{H3Error, CellBoundary}
 end
 
 """
-Get the reversed directed edge (swapping origin and destination).
+    reverseDirectedEdge(edge::H3Index) -> (H3Error, H3Index)
+
+Get the directed edge in the reverse direction (swapping origin and destination).
 """
 function reverseDirectedEdge(edge::H3Index)::Tuple{H3Error, H3Index}
     if !isValidDirectedEdge(edge)

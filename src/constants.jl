@@ -36,13 +36,22 @@ const H3_EDGE_MODE = 3
 const H3_VERTEX_MODE = 4
 
 # H3Index type
+"""
+64-bit H3 index. Alias for `UInt64`. Encodes cell, directed edge, or vertex identifiers in the H3 system.
+"""
 const H3Index = UInt64
+"""
+The null/invalid H3 index (all bits zero).
+"""
 const H3_NULL = H3Index(0)
 
 # Maximum cell boundary vertices
 const MAX_CELL_BNDRY_VERTS = 10
 
 # H3 Error codes
+"""
+Error codes returned by H3 operations. See also: [`describeH3Error`](@ref).
+"""
 @enum H3Error::UInt32 begin
     E_SUCCESS = 0
     E_FAILED = 1
@@ -89,6 +98,13 @@ const H3_ERROR_DESCRIPTIONS = [
     "Deleted subsequence indicates invalid index",
 ]
 
+"""
+    describeH3Error(err::H3Error) -> String
+
+Return a human-readable description of an [`H3Error`](@ref) code.
+
+See also the H3 C API: [`describeH3Error`](https://h3geo.org/docs/api/misc#describeh3error)
+"""
 function describeH3Error(err::H3Error)
     idx = Int(err) + 1
     if idx < 1 || idx > length(H3_ERROR_DESCRIPTIONS)
@@ -97,6 +113,9 @@ function describeH3Error(err::H3Error)
     return H3_ERROR_DESCRIPTIONS[idx]
 end
 
+"""
+Mode for polygon containment checks.
+"""
 @enum ContainmentMode::UInt32 begin
     CONTAINMENT_CENTER = 0
     CONTAINMENT_FULL = 1
@@ -107,12 +126,18 @@ end
 
 # Core geometric types
 
+"""
+Latitude/longitude coordinate pair in radians.
+"""
 struct LatLng
     lat::Float64
     lng::Float64
 end
 LatLng() = LatLng(0.0, 0.0)
 
+"""
+Cell boundary represented as a fixed-capacity array of [`LatLng`](@ref) vertices.
+"""
 struct CellBoundary
     numVerts::Int32
     verts::NTuple{MAX_CELL_BNDRY_VERTS, LatLng}
@@ -121,12 +146,18 @@ function CellBoundary()
     CellBoundary(Int32(0), ntuple(_ -> LatLng(), MAX_CELL_BNDRY_VERTS))
 end
 
+"""
+Ordered sequence of [`LatLng`](@ref) vertices forming a closed loop.
+"""
 struct GeoLoop
     numVerts::Int32
     verts::Vector{LatLng}
 end
 GeoLoop() = GeoLoop(Int32(0), LatLng[])
 
+"""
+Polygon defined by an outer [`GeoLoop`](@ref) and zero or more holes.
+"""
 struct GeoPolygon
     geoloop::GeoLoop
     numHoles::Int32
@@ -140,6 +171,9 @@ struct GeoMultiPolygon
 end
 GeoMultiPolygon() = GeoMultiPolygon(Int32(0), GeoPolygon[])
 
+"""
+IJ coordinate pair used for local grid coordinates. See the H3 C API: [`CoordIJ`](https://h3geo.org/docs/api/traversal).
+"""
 struct CoordIJ
     i::Int32
     j::Int32

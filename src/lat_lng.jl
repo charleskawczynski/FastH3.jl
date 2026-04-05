@@ -30,7 +30,21 @@ function setGeoDegs(latDegs::Float64, lngDegs::Float64)::LatLng
     return LatLng(degsToRads(latDegs), degsToRads(lngDegs))
 end
 
+"""
+    degsToRads(degrees) -> Float64
+
+Convert degrees to radians.
+
+See also the H3 C API: [`degsToRads`](https://h3geo.org/docs/api/misc#degstoRads)
+"""
 degsToRads(degrees::Float64)::Float64 = degrees * M_PI_180
+"""
+    radsToDegs(radians) -> Float64
+
+Convert radians to degrees.
+
+See also the H3 C API: [`radsToDegs`](https://h3geo.org/docs/api/misc#radsToDegs)
+"""
 radsToDegs(radians::Float64)::Float64 = radians * M_180_PI
 
 function constrainLat(lat::Float64)::Float64
@@ -61,7 +75,11 @@ function normalizeLng(lng::Float64, normalization::LongitudeNormalization)::Floa
 end
 
 """
-Great circle distance in radians between two points using the Haversine formula.
+    greatCircleDistanceRads(a::LatLng, b::LatLng) -> Float64
+
+Compute the great circle distance in radians between two points using the Haversine formula.
+
+See also the H3 C API: [`greatCircleDistanceRads`](https://h3geo.org/docs/api/misc#greatcircledistancerads)
 """
 function greatCircleDistanceRads(a::LatLng, b::LatLng)::Float64
     sinLat = sin((b.lat - a.lat) * 0.5)
@@ -70,10 +88,24 @@ function greatCircleDistanceRads(a::LatLng, b::LatLng)::Float64
     return 2.0 * atan(sqrt(A), sqrt(1.0 - A))
 end
 
+"""
+    greatCircleDistanceKm(a::LatLng, b::LatLng) -> Float64
+
+Compute the great circle distance in kilometers between two points.
+
+See also the H3 C API: [`greatCircleDistanceKm`](https://h3geo.org/docs/api/misc#greatcircledistancekm)
+"""
 function greatCircleDistanceKm(a::LatLng, b::LatLng)::Float64
     return greatCircleDistanceRads(a, b) * EARTH_RADIUS_KM
 end
 
+"""
+    greatCircleDistanceM(a::LatLng, b::LatLng) -> Float64
+
+Compute the great circle distance in meters between two points.
+
+See also the H3 C API: [`greatCircleDistanceM`](https://h3geo.org/docs/api/misc#greatcircledistancem)
+"""
 function greatCircleDistanceM(a::LatLng, b::LatLng)::Float64
     return greatCircleDistanceKm(a, b) * 1000.0
 end
@@ -157,9 +189,16 @@ const _hexEdgeLengthM = [
     1281256.011, 483056.8391, 182512.9565, 68979.22179,
     26071.75968, 9854.090990, 3724.532667, 1406.475763,
     531.4140101, 200.7861476, 75.86378287, 28.66389748,
-    10.83018784, 4.092010473, 1.546099657, 0.584168630
+    10.83018784, 4.092010473, 1.546099657,     0.584168630
 ]
 
+"""
+    getHexagonAreaAvgKm2(res::Int) -> (H3Error, Float64)
+
+Get the average hexagon area in square kilometers at the given resolution.
+
+See also the H3 C API: [`getHexagonAreaAvgKm2`](https://h3geo.org/docs/api/misc#gethexagonareaavgkm2)
+"""
 function getHexagonAreaAvgKm2(res::Int)::Tuple{H3Error, Float64}
     if res < 0 || res > MAX_H3_RES
         return (E_RES_DOMAIN, 0.0)
@@ -167,6 +206,13 @@ function getHexagonAreaAvgKm2(res::Int)::Tuple{H3Error, Float64}
     return (E_SUCCESS, _hexAreaKm2[res + 1])
 end
 
+"""
+    getHexagonAreaAvgM2(res::Int) -> (H3Error, Float64)
+
+Get the average hexagon area in square meters at the given resolution.
+
+See also the H3 C API: [`getHexagonAreaAvgM2`](https://h3geo.org/docs/api/misc#gethexagonareaavgm2)
+"""
 function getHexagonAreaAvgM2(res::Int)::Tuple{H3Error, Float64}
     if res < 0 || res > MAX_H3_RES
         return (E_RES_DOMAIN, 0.0)
@@ -174,6 +220,13 @@ function getHexagonAreaAvgM2(res::Int)::Tuple{H3Error, Float64}
     return (E_SUCCESS, _hexAreaM2[res + 1])
 end
 
+"""
+    getHexagonEdgeLengthAvgKm(res::Int) -> (H3Error, Float64)
+
+Get the average hexagon edge length in kilometers at the given resolution.
+
+See also the H3 C API: [`getHexagonEdgeLengthAvgKm`](https://h3geo.org/docs/api/misc#gethexagonedgelengthavgkm)
+"""
 function getHexagonEdgeLengthAvgKm(res::Int)::Tuple{H3Error, Float64}
     if res < 0 || res > MAX_H3_RES
         return (E_RES_DOMAIN, 0.0)
@@ -181,6 +234,13 @@ function getHexagonEdgeLengthAvgKm(res::Int)::Tuple{H3Error, Float64}
     return (E_SUCCESS, _hexEdgeLengthKm[res + 1])
 end
 
+"""
+    getHexagonEdgeLengthAvgM(res::Int) -> (H3Error, Float64)
+
+Get the average hexagon edge length in meters at the given resolution.
+
+See also the H3 C API: [`getHexagonEdgeLengthAvgM`](https://h3geo.org/docs/api/misc#gethexagonedgelengthavgm)
+"""
 function getHexagonEdgeLengthAvgM(res::Int)::Tuple{H3Error, Float64}
     if res < 0 || res > MAX_H3_RES
         return (E_RES_DOMAIN, 0.0)
@@ -188,6 +248,13 @@ function getHexagonEdgeLengthAvgM(res::Int)::Tuple{H3Error, Float64}
     return (E_SUCCESS, _hexEdgeLengthM[res + 1])
 end
 
+"""
+    getNumCells(res::Int) -> (H3Error, Int64)
+
+Get the total number of cells (hexagons and pentagons) at the given resolution.
+
+See also the H3 C API: [`getNumCells`](https://h3geo.org/docs/api/misc#getnumcells)
+"""
 function getNumCells(res::Int)::Tuple{H3Error, Int64}
     if res < 0 || res > MAX_H3_RES
         return (E_RES_DOMAIN, Int64(0))

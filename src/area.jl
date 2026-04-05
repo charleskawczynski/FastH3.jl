@@ -1,5 +1,12 @@
 # Area and edge length calculation functions
 
+"""
+    cellAreaRads2(h::H3Index) -> (H3Error, Float64)
+
+Compute the exact area of a cell in steradians.
+
+See also the H3 C API: [`cellAreaRads2`](https://h3geo.org/docs/api/misc#cellarearads2)
+"""
 function cellAreaRads2(h::H3Index)::Tuple{H3Error, Float64}
     err, cb = cellToBoundary(h)
     if err != E_SUCCESS
@@ -18,6 +25,13 @@ function cellAreaRads2(h::H3Index)::Tuple{H3Error, Float64}
     return (E_SUCCESS, area)
 end
 
+"""
+    cellAreaKm2(h::H3Index) -> (H3Error, Float64)
+
+Compute the exact area of a cell in square kilometers.
+
+See also the H3 C API: [`cellAreaKm2`](https://h3geo.org/docs/api/misc#cellareakm2)
+"""
 function cellAreaKm2(h::H3Index)::Tuple{H3Error, Float64}
     err, areaRads = cellAreaRads2(h)
     if err != E_SUCCESS
@@ -26,6 +40,13 @@ function cellAreaKm2(h::H3Index)::Tuple{H3Error, Float64}
     return (E_SUCCESS, areaRads * EARTH_RADIUS_KM * EARTH_RADIUS_KM)
 end
 
+"""
+    cellAreaM2(h::H3Index) -> (H3Error, Float64)
+
+Compute the exact area of a cell in square meters.
+
+See also the H3 C API: [`cellAreaM2`](https://h3geo.org/docs/api/misc#cellaream2)
+"""
 function cellAreaM2(h::H3Index)::Tuple{H3Error, Float64}
     err, areaKm = cellAreaKm2(h)
     if err != E_SUCCESS
@@ -60,6 +81,13 @@ function _triangleArea(a::LatLng, b::LatLng, c::LatLng)::Float64
     return abs(excess)
 end
 
+"""
+    edgeLengthRads(edge::H3Index) -> (H3Error, Float64)
+
+Compute the length of a directed edge in radians.
+
+See also the H3 C API: [`edgeLengthRads`](https://h3geo.org/docs/api/misc#edgelengthrads)
+"""
 function edgeLengthRads(edge::H3Index)::Tuple{H3Error, Float64}
     err, cb = directedEdgeToBoundary(edge)
     if err != E_SUCCESS
@@ -72,11 +100,25 @@ function edgeLengthRads(edge::H3Index)::Tuple{H3Error, Float64}
     return (E_SUCCESS, length_val)
 end
 
+"""
+    edgeLengthKm(edge::H3Index) -> (H3Error, Float64)
+
+Compute the length of a directed edge in kilometers.
+
+See also the H3 C API: [`edgeLengthKm`](https://h3geo.org/docs/api/misc#edgelengthkm)
+"""
 function edgeLengthKm(edge::H3Index)::Tuple{H3Error, Float64}
     err, lengthRads = edgeLengthRads(edge)
     return (err, lengthRads * EARTH_RADIUS_KM)
 end
 
+"""
+    edgeLengthM(edge::H3Index) -> (H3Error, Float64)
+
+Compute the length of a directed edge in meters.
+
+See also the H3 C API: [`edgeLengthM`](https://h3geo.org/docs/api/misc#edgelengthm)
+"""
 function edgeLengthM(edge::H3Index)::Tuple{H3Error, Float64}
     err, lengthKm = edgeLengthKm(edge)
     return (err, lengthKm * 1000.0)
