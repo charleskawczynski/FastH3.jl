@@ -102,7 +102,11 @@ using CodeComplexity
         end
 
         @testset "String conversion" begin
-            @test_opt stringToH3("088283080ddfffff")
+            if VERSION ≥ v"1.11"
+                @test_opt stringToH3("088283080ddfffff")
+            else
+                @test_opt broken=true stringToH3("088283080ddfffff")
+            end
             @test_opt h3ToString(cell)
             @test_opt describeH3Error(E_SUCCESS)
         end
