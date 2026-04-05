@@ -2,13 +2,14 @@ using Documenter
 using H3X
 
 makedocs(;
-    sitename = "H3X.jl",
-    modules = [H3X],
-    format = Documenter.HTML(;
-        prettyurls = get(ENV, "CI", nothing) == "true",
-        canonical = "https://charleskawczynski.github.io/H3X.jl",
+    sitename="H3X.jl",
+    modules=[H3X],
+    format=Documenter.HTML(;
+        prettyurls=get(ENV, "CI", nothing) == "true",
+        canonical="https://charleskawczynski.github.io/H3X.jl",
     ),
-    pages = [
+    clean=true,
+    pages=[
         "Home" => "index.md",
         "API Reference" => [
             "Indexing" => "api/indexing.md",
@@ -21,11 +22,14 @@ makedocs(;
         ],
         "Internals" => "api/internals.md",
     ],
-    warnonly = true,
+    doctest=true,
+    checkdocs=:exports,
 )
 
 deploydocs(;
-    repo = "github.com/charleskawczynski/H3X.jl.git",
-    devbranch = "main",
-    push_preview = true,
+    repo="github.com/charleskawczynski/H3X.jl.git",
+    target="build",
+    devbranch="main",
+    push_preview=true,
+    forcepush=true,
 )
