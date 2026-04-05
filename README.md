@@ -1,5 +1,9 @@
 # H3X.jl
 
+| **Build Status**                                                                                                                                          | **Documentation**                                                                                                                                                                                                                          | **Coverage**                                                                                                                                  |
+|:---------------------------------------------------------------------------------------------------------------------------------------------------------:|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:---------------------------------------------------------------------------------------------------------------------------------------------:|
+| [![CI](https://github.com/charleskawczynski/H3X.jl/actions/workflows/ci.yml/badge.svg)](https://github.com/charleskawczynski/H3X.jl/actions/workflows/ci.yml) | [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://charleskawczynski.github.io/H3X.jl/stable/) [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://charleskawczynski.github.io/H3X.jl/dev/) | [![Codecov](https://codecov.io/gh/charleskawczynski/H3X.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/charleskawczynski/H3X.jl) |
+
 A pure Julia implementation of [Uber's H3](https://github.com/uber/h3) hexagonal hierarchical geospatial indexing system.
 
 ## Acknowledgments
