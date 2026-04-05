@@ -1,5 +1,5 @@
 """
-    H3X
+    FastH3
 
 Pure Julia implementation of Uber's [H3](https://h3geo.org/) hexagonal hierarchical
 geospatial indexing system. Provides the complete H3 v4 public API with no C dependencies.
@@ -8,7 +8,7 @@ See the [H3 documentation](https://h3geo.org/docs/) for background on the indexi
 system and the [API reference](https://h3geo.org/docs/api/indexing) for the original
 C function signatures.
 """
-module H3X
+module FastH3
 
 # Layer 0: Types and Constants
 include("constants.jl")
@@ -90,4 +90,4 @@ export stringToH3, h3ToString
 # Description
 export describeH3Error
 
-end # module H3X
+end # module FastH3

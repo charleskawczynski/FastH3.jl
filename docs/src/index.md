@@ -1,10 +1,10 @@
-# H3X.jl
+# FastH3.jl
 
 *A pure Julia implementation of Uber's [H3](https://h3geo.org/) hexagonal hierarchical geospatial indexing system.*
 
 ## Overview
 
-H3X.jl provides a complete, dependency-free Julia implementation of the H3 library.
+FastH3.jl provides a complete, dependency-free Julia implementation of the H3 library.
 It maps latitude/longitude coordinates onto a hierarchical grid of hexagonal (and
 pentagonal) cells, enabling efficient spatial indexing, neighbor traversal, and
 distance computation.
@@ -19,7 +19,7 @@ Key properties:
 ## Quick Start
 
 ```julia
-using H3X
+using FastH3
 
 lat, lng = 0.6518070561696664, -1.7453292519943295  # radians
 err, cell = latLngToCell(LatLng(lat, lng), 5)
@@ -29,14 +29,14 @@ err, disk = gridDisk(cell, 1)
 
 ## C API Correspondence
 
-Every public function in H3X.jl corresponds to a function in the
+Every public function in FastH3.jl corresponds to a function in the
 [H3 C library](https://h3geo.org/docs/api/indexing). Docstrings include direct
 links to the matching C API documentation page.
 
 ## Module
 
 ```@docs
-H3X.H3X
+FastH3.FastH3
 ```
 
 ## Contents

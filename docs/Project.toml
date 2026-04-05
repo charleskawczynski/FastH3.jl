@@ -1,3 +1,3 @@
 [deps]
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
-H3X = "a23a4b7e-97d2-4b3a-8f5c-6e9d0f2a1b3c"
+FastH3 = "a23a4b7e-97d2-4b3a-8f5c-6e9d0f2a1b3c"

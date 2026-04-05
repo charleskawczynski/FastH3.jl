@@ -5,7 +5,7 @@ using CodeComplexity
 @testset "Code quality" begin
 
     @testset "Aqua" begin
-        Aqua.test_all(H3X)
+        Aqua.test_all(FastH3)
     end
 
     @testset "JET optimization" begin
@@ -17,99 +17,99 @@ using CodeComplexity
         cells = H3Index[cell]
 
         @testset "Index inspection" begin
-            @test_opt target_modules = (H3X,) getResolution(cell)
-            @test_opt target_modules = (H3X,) getBaseCellNumber(cell)
-            @test_opt target_modules = (H3X,) isValidCell(cell)
-            @test_opt target_modules = (H3X,) isPentagon(cell)
-            @test_opt target_modules = (H3X,) isResClassIII(cell)
-            @test_opt target_modules = (H3X,) isValidIndex(cell)
+            @test_opt target_modules = (FastH3,) getResolution(cell)
+            @test_opt target_modules = (FastH3,) getBaseCellNumber(cell)
+            @test_opt target_modules = (FastH3,) isValidCell(cell)
+            @test_opt target_modules = (FastH3,) isPentagon(cell)
+            @test_opt target_modules = (FastH3,) isResClassIII(cell)
+            @test_opt target_modules = (FastH3,) isValidIndex(cell)
         end
 
         @testset "Coordinate conversion" begin
-            @test_opt target_modules = (H3X,) latLngToCell(latlng, 5)
-            @test_opt target_modules = (H3X,) cellToLatLng(cell)
-            @test_opt target_modules = (H3X,) cellToBoundary(cell)
+            @test_opt target_modules = (FastH3,) latLngToCell(latlng, 5)
+            @test_opt target_modules = (FastH3,) cellToLatLng(cell)
+            @test_opt target_modules = (FastH3,) cellToBoundary(cell)
         end
 
         @testset "Hierarchy" begin
-            @test_opt target_modules = (H3X,) cellToParent(cell, 5)
-            @test_opt target_modules = (H3X,) cellToCenterChild(cell, 10)
-            @test_opt target_modules = (H3X,) cellToChildrenSize(cell, 10)
-            @test_opt target_modules = (H3X,) cellToChildren(cell, 10)
+            @test_opt target_modules = (FastH3,) cellToParent(cell, 5)
+            @test_opt target_modules = (FastH3,) cellToCenterChild(cell, 10)
+            @test_opt target_modules = (FastH3,) cellToChildrenSize(cell, 10)
+            @test_opt target_modules = (FastH3,) cellToChildren(cell, 10)
         end
 
         @testset "Compact / uncompact" begin
-            @test_opt target_modules = (H3X,) compactCells(cells)
-            @test_opt target_modules = (H3X,) uncompactCellsSize(cells, 10)
-            @test_opt target_modules = (H3X,) uncompactCells(cells, 10)
+            @test_opt target_modules = (FastH3,) compactCells(cells)
+            @test_opt target_modules = (FastH3,) uncompactCellsSize(cells, 10)
+            @test_opt target_modules = (FastH3,) uncompactCells(cells, 10)
         end
 
         @testset "Grid traversal" begin
-            @test_opt target_modules = (H3X,) maxGridDiskSize(3)
-            @test_opt target_modules = (H3X,) gridDisk(cell, 1)
-            @test_opt target_modules = (H3X,) gridDiskDistances(cell, 1)
-            @test_opt target_modules = (H3X,) gridDiskUnsafe(cell, 1)
-            @test_opt target_modules = (H3X,) gridDiskDistancesUnsafe(cell, 1)
-            @test_opt target_modules = (H3X,) gridRingUnsafe(cell, 1)
-            @test_opt target_modules = (H3X,) gridDistance(cell, cell2)
-            @test_opt target_modules = (H3X,) gridPathCellsSize(cell, cell2)
-            @test_opt target_modules = (H3X,) gridPathCells(cell, cell2)
-            @test_opt target_modules = (H3X,) cellToLocalIj(cell, cell2, UInt32(0))
-            @test_opt target_modules = (H3X,) localIjToCell(cell, ij, UInt32(0))
-            @test_opt target_modules = (H3X,) areNeighborCells(cell, cell2)
+            @test_opt target_modules = (FastH3,) maxGridDiskSize(3)
+            @test_opt target_modules = (FastH3,) gridDisk(cell, 1)
+            @test_opt target_modules = (FastH3,) gridDiskDistances(cell, 1)
+            @test_opt target_modules = (FastH3,) gridDiskUnsafe(cell, 1)
+            @test_opt target_modules = (FastH3,) gridDiskDistancesUnsafe(cell, 1)
+            @test_opt target_modules = (FastH3,) gridRingUnsafe(cell, 1)
+            @test_opt target_modules = (FastH3,) gridDistance(cell, cell2)
+            @test_opt target_modules = (FastH3,) gridPathCellsSize(cell, cell2)
+            @test_opt target_modules = (FastH3,) gridPathCells(cell, cell2)
+            @test_opt target_modules = (FastH3,) cellToLocalIj(cell, cell2, UInt32(0))
+            @test_opt target_modules = (FastH3,) localIjToCell(cell, ij, UInt32(0))
+            @test_opt target_modules = (FastH3,) areNeighborCells(cell, cell2)
         end
 
         @testset "Directed edges" begin
-            @test_opt target_modules = (H3X,) isValidDirectedEdge(cell)
-            @test_opt target_modules = (H3X,) getDirectedEdgeOrigin(cell)
-            @test_opt target_modules = (H3X,) getDirectedEdgeDestination(cell)
-            @test_opt target_modules = (H3X,) directedEdgeToCells(cell)
-            @test_opt target_modules = (H3X,) cellsToDirectedEdge(cell, cell2)
-            @test_opt target_modules = (H3X,) originToDirectedEdges(cell)
-            @test_opt target_modules = (H3X,) directedEdgeToBoundary(cell)
-            @test_opt target_modules = (H3X,) reverseDirectedEdge(cell)
+            @test_opt target_modules = (FastH3,) isValidDirectedEdge(cell)
+            @test_opt target_modules = (FastH3,) getDirectedEdgeOrigin(cell)
+            @test_opt target_modules = (FastH3,) getDirectedEdgeDestination(cell)
+            @test_opt target_modules = (FastH3,) directedEdgeToCells(cell)
+            @test_opt target_modules = (FastH3,) cellsToDirectedEdge(cell, cell2)
+            @test_opt target_modules = (FastH3,) originToDirectedEdges(cell)
+            @test_opt target_modules = (FastH3,) directedEdgeToBoundary(cell)
+            @test_opt target_modules = (FastH3,) reverseDirectedEdge(cell)
         end
 
         @testset "Vertexes" begin
-            @test_opt target_modules = (H3X,) cellToVertex(cell, 0)
-            @test_opt target_modules = (H3X,) cellToVertexes(cell)
-            @test_opt target_modules = (H3X,) vertexToLatLng(cell)
-            @test_opt target_modules = (H3X,) isValidVertex(cell)
+            @test_opt target_modules = (FastH3,) cellToVertex(cell, 0)
+            @test_opt target_modules = (FastH3,) cellToVertexes(cell)
+            @test_opt target_modules = (FastH3,) vertexToLatLng(cell)
+            @test_opt target_modules = (FastH3,) isValidVertex(cell)
         end
 
         @testset "Measurement" begin
-            @test_opt target_modules = (H3X,) greatCircleDistanceRads(latlng, latlng2)
-            @test_opt target_modules = (H3X,) greatCircleDistanceKm(latlng, latlng2)
-            @test_opt target_modules = (H3X,) greatCircleDistanceM(latlng, latlng2)
-            @test_opt target_modules = (H3X,) degsToRads(1.0)
-            @test_opt target_modules = (H3X,) radsToDegs(1.0)
-            @test_opt target_modules = (H3X,) getHexagonAreaAvgKm2(5)
-            @test_opt target_modules = (H3X,) getHexagonAreaAvgM2(5)
-            @test_opt target_modules = (H3X,) getHexagonEdgeLengthAvgKm(5)
-            @test_opt target_modules = (H3X,) getHexagonEdgeLengthAvgM(5)
-            @test_opt target_modules = (H3X,) getNumCells(5)
-            @test_opt target_modules = (H3X,) pentagonCount()
+            @test_opt target_modules = (FastH3,) greatCircleDistanceRads(latlng, latlng2)
+            @test_opt target_modules = (FastH3,) greatCircleDistanceKm(latlng, latlng2)
+            @test_opt target_modules = (FastH3,) greatCircleDistanceM(latlng, latlng2)
+            @test_opt target_modules = (FastH3,) degsToRads(1.0)
+            @test_opt target_modules = (FastH3,) radsToDegs(1.0)
+            @test_opt target_modules = (FastH3,) getHexagonAreaAvgKm2(5)
+            @test_opt target_modules = (FastH3,) getHexagonAreaAvgM2(5)
+            @test_opt target_modules = (FastH3,) getHexagonEdgeLengthAvgKm(5)
+            @test_opt target_modules = (FastH3,) getHexagonEdgeLengthAvgM(5)
+            @test_opt target_modules = (FastH3,) getNumCells(5)
+            @test_opt target_modules = (FastH3,) pentagonCount()
         end
 
         @testset "Faces" begin
-            @test_opt target_modules = (H3X,) maxFaceCount(cell)
-            @test_opt target_modules = (H3X,) getIcosahedronFaces(cell)
+            @test_opt target_modules = (FastH3,) maxFaceCount(cell)
+            @test_opt target_modules = (FastH3,) getIcosahedronFaces(cell)
         end
 
         @testset "Pentagons and res0" begin
-            @test_opt target_modules = (H3X,) getPentagons(5)
-            @test_opt target_modules = (H3X,) getRes0Cells()
+            @test_opt target_modules = (FastH3,) getPentagons(5)
+            @test_opt target_modules = (FastH3,) getRes0Cells()
         end
 
         @testset "String conversion" begin
-            @test_opt target_modules = (H3X,) stringToH3("088283080ddfffff")
-            @test_opt target_modules = (H3X,) h3ToString(cell)
-            @test_opt target_modules = (H3X,) describeH3Error(E_SUCCESS)
+            @test_opt target_modules = (FastH3,) stringToH3("088283080ddfffff")
+            @test_opt target_modules = (FastH3,) h3ToString(cell)
+            @test_opt target_modules = (FastH3,) describeH3Error(E_SUCCESS)
         end
     end
 
     @testset "CodeComplexity" begin
-        check_complexity(H3X; max_complexity = 40)
+        check_complexity(FastH3; max_complexity = 40)
         @test true
     end
 

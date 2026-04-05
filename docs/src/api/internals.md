@@ -1,18 +1,18 @@
 # Internals
 
 Non-exported functions that may be useful for advanced usage. Access these
-with the `H3X.` module prefix.
+with the `FastH3.` module prefix.
 
 ## Grid Traversal Helpers
 
 ```@docs
-H3X.h3NeighborRotations
-H3X.gridDiskDistancesSafe
+FastH3.h3NeighborRotations
+FastH3.gridDiskDistancesSafe
 ```
 
 ## Index Helpers
 
 ```@docs
-H3X.getIndexDigit
-H3X.constructCell
+FastH3.getIndexDigit
+FastH3.constructCell
 ```
