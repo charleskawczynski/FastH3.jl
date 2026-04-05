@@ -42,15 +42,15 @@ getNumCells
 ## Exact Cell Area
 
 ```@docs
-H3X.cellAreaRads2
-H3X.cellAreaKm2
-H3X.cellAreaM2
+FastH3.cellAreaRads2
+FastH3.cellAreaKm2
+FastH3.cellAreaM2
 ```
 
 ## Exact Edge Length
 
 ```@docs
-H3X.edgeLengthRads
-H3X.edgeLengthKm
-H3X.edgeLengthM
+FastH3.edgeLengthRads
+FastH3.edgeLengthKm
+FastH3.edgeLengthM
 ```

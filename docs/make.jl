@@ -1,12 +1,12 @@
 using Documenter
-using H3X
+using FastH3
 
 makedocs(;
-    sitename="H3X.jl",
-    modules=[H3X],
+    sitename="FastH3.jl",
+    modules=[FastH3],
     format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", nothing) == "true",
-        canonical="https://charleskawczynski.github.io/H3X.jl",
+        canonical="https://charleskawczynski.github.io/FastH3.jl",
     ),
     clean=true,
     pages=[
@@ -27,7 +27,7 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="github.com/charleskawczynski/H3X.jl.git",
+    repo="github.com/charleskawczynski/FastH3.jl.git",
     target="build",
     devbranch="main",
     push_preview=true,
