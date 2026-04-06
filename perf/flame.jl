@@ -2,12 +2,12 @@
 Profile gridPathCells and write interactive flame graphs to perf/output/.
 
 Supports profiling the cube-interpolation implementation, the great-circle
-walk implementation, the hybrid implementation, or all (default).
+walk implementation, the robust implementation, or all (default).
 
 Usage:
   julia --project=perf perf/flame.jl
   julia --project=perf perf/flame.jl --method gc
-  julia --project=perf perf/flame.jl --method hybrid
+  julia --project=perf perf/flame.jl --method robust
   julia --project=perf perf/flame.jl --method cube --scenario hex_r5_d50
   julia --project=perf perf/flame.jl --resolution 8 --n-iterations 20
 =#
@@ -75,10 +75,10 @@ function main()
         profile_method!(scenarios, n_iterations, gc_fn, "gridPathCells_gc$(tag)")
     end
 
-    if method in ("hybrid", "all")
-        println("Profiling hybrid gridPathCellsHybrid ($(length(scenarios)) scenarios, $(n_iterations) iterations)")
-        hyb_fn = (s, e) -> Ext.gridPathCellsHybrid(s, e)
-        profile_method!(scenarios, n_iterations, hyb_fn, "gridPathCells_hybrid$(tag)")
+    if method in ("robust", "all")
+        println("Profiling robust gridPathCellsRobust ($(length(scenarios)) scenarios, $(n_iterations) iterations)")
+        rob_fn = (s, e) -> Ext.gridPathCellsRobust(s, e)
+        profile_method!(scenarios, n_iterations, rob_fn, "gridPathCells_robust$(tag)")
     end
 end
 

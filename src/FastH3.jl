@@ -90,7 +90,7 @@ export stringToH3, h3ToString
 # Description
 export describeH3Error
 
-# Layer 5: Extensions (great-circle walk, hybrid path)
+# Layer 5: Extensions (great-circle walk, robust path)
 include("FastH3Extension/FastH3Extension.jl")
 
 end # module FastH3

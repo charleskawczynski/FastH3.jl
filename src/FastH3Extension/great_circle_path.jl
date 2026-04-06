@@ -37,14 +37,14 @@ three cells meet), a bisection fallback handles the remainder.
 
 # ── Vec3 type and inline helpers ──
 
-const Vec3 = NTuple{3, Float64}
+const Vec3 = NTuple{3,Float64}
 
 @inline _cross3(a::Vec3, b::Vec3)::Vec3 =
-    (a[2]*b[3] - a[3]*b[2], a[3]*b[1] - a[1]*b[3], a[1]*b[2] - a[2]*b[1])
+    (a[2] * b[3] - a[3] * b[2], a[3] * b[1] - a[1] * b[3], a[1] * b[2] - a[2] * b[1])
 
-@inline _dot3(a::Vec3, b::Vec3)::Float64 = a[1]*b[1] + a[2]*b[2] + a[3]*b[3]
+@inline _dot3(a::Vec3, b::Vec3)::Float64 = a[1] * b[1] + a[2] * b[2] + a[3] * b[3]
 @inline _norm3(a::Vec3)::Float64 = sqrt(_dot3(a, a))
-@inline _scale3(s::Float64, a::Vec3)::Vec3 = (s*a[1], s*a[2], s*a[3])
+@inline _scale3(s::Float64, a::Vec3)::Vec3 = (s * a[1], s * a[2], s * a[3])
 @inline _neg3(a::Vec3)::Vec3 = (-a[1], -a[2], -a[3])
 
 # ── Geo ↔ Cartesian conversions ──
@@ -56,10 +56,10 @@ end
 
 function _vec3ToLatLng(v::Vec3)::LatLng
     x, y, z = v
-    return LatLng(atan(z, sqrt(x*x + y*y)), atan(y, x))
+    return LatLng(atan(z, sqrt(x * x + y * y)), atan(y, x))
 end
 
-function _cellToBoundaryVec3(cell::H3Index)::Tuple{Int, NTuple{10, Vec3}}
+function _cellToBoundaryVec3(cell::H3Index)::Tuple{Int,NTuple{10,Vec3}}
     _, cb = cellToBoundary(cell)
     nv = Int(cb.numVerts)
     cart_verts = ntuple(Val(10)) do i
@@ -81,7 +81,7 @@ function _interpolate_great_circle(p0::LatLng, p1::LatLng, frac::Float64)::LatLn
     sin_omega = sin(omega)
     a = sin((1.0 - frac) * omega) / sin_omega
     b = sin(frac * omega) / sin_omega
-    v = (a*u0[1] + b*u1[1], a*u0[2] + b*u1[2], a*u0[3] + b*u1[3])
+    v = (a * u0[1] + b * u1[1], a * u0[2] + b * u1[2], a * u0[3] + b * u1[3])
     return _vec3ToLatLng(v)
 end
 
@@ -116,8 +116,8 @@ Returns `(found, exit_frac, exit_pt, edge_vi, edge_vj)`.
 """
 function _find_exit_crossing(
     u0::Vec3, u1::Vec3, n_path::Vec3,
-    nv::Int, verts::NTuple{10, Vec3}, min_frac::Float64,
-)::Tuple{Bool, Float64, Vec3, Vec3, Vec3}
+    nv::Int, verts::NTuple{10,Vec3}, min_frac::Float64,
+)::Tuple{Bool,Float64,Vec3,Vec3,Vec3}
     best_frac = 2.0
     best_pt = u1
     best_vi = u0
@@ -166,19 +166,21 @@ edge's angular length, then calls `latLngToCell`.
 """
 function _next_cell_across_edge(
     exit_pt::Vec3, vi::Vec3, vj::Vec3,
-    nv::Int, cell_verts::NTuple{10, Vec3}, h3_res::Int,
+    nv::Int, cell_verts::NTuple{10,Vec3}, h3_res::Int,
 )::H3Index
     cx, cy, cz = 0.0, 0.0, 0.0
     for i in 1:nv
         v = cell_verts[i]
-        cx += v[1]; cy += v[2]; cz += v[3]
+        cx += v[1]
+        cy += v[2]
+        cz += v[3]
     end
     centroid = (cx / nv, cy / nv, cz / nv)
 
     dx = exit_pt[1] - centroid[1]
     dy = exit_pt[2] - centroid[2]
     dz = exit_pt[3] - centroid[3]
-    d_norm = sqrt(dx*dx + dy*dy + dz*dz)
+    d_norm = sqrt(dx * dx + dy * dy + dz * dz)
 
     if d_norm < 1e-15
         _, cell = latLngToCell(_vec3ToLatLng(exit_pt), h3_res)
@@ -191,9 +193,9 @@ function _next_cell_across_edge(
     nx = exit_pt[1] + nudge_scale * dx
     ny = exit_pt[2] + nudge_scale * dy
     nz = exit_pt[3] + nudge_scale * dz
-    inv_n = 1.0 / sqrt(nx*nx + ny*ny + nz*nz)
+    inv_n = 1.0 / sqrt(nx * nx + ny * ny + nz * nz)
 
-    _, cell = latLngToCell(_vec3ToLatLng((nx*inv_n, ny*inv_n, nz*inv_n)), h3_res)
+    _, cell = latLngToCell(_vec3ToLatLng((nx * inv_n, ny * inv_n, nz * inv_n)), h3_res)
     return cell
 end
 
@@ -302,7 +304,7 @@ function _try_arc_nudge(
         t = min(exit_frac + nudge, 1.0)
         a = sin((1.0 - t) * omega) / sin_omega
         b = sin(t * omega) / sin_omega
-        pt = (a*u0[1] + b*u1[1], a*u0[2] + b*u1[2], a*u0[3] + b*u1[3])
+        pt = (a * u0[1] + b * u1[1], a * u0[2] + b * u1[2], a * u0[3] + b * u1[3])
         _, cell = latLngToCell(_vec3ToLatLng(pt), h3_res)
         cell == current_cell && continue
         _is_geographic_neighbor(current_cell, cell) && return cell
@@ -444,72 +446,113 @@ function gridPathCells(start_::H3Index, end_::H3Index; max_depth::Int=100, max_i
     return path
 end
 
-# ── Public API: Hybrid (piecewise-cube with GC fallback) ──
+# ── Public API: Robust (cube with greedy re-anchoring) ──
 
 """
-    gridPathCellsHybrid(start_::H3Index, end_::H3Index; max_depth=40) -> Vector{H3Index}
-
-Compute a path of H3 cells between `start_` and `end_` using piecewise cube
-interpolation.  Tries `FastH3.gridPathCells` (cube) first; when it fails
-(e.g. cross-icosahedral-face paths), recursively bisects the great-circle arc
-at its midpoint and applies cube interpolation to each sub-segment.
-
-The result is piecewise-shortest within each icosahedral face, connected
-through great-circle-determined waypoints at face boundaries.  This is
-neither the global shortest grid path nor the great-circle-faithful path,
-but combines cube speed with cross-face robustness.
+Pick the neighbor of `current` that is geographically closest to `target`.
+Uses `gridDisk(current, 1)` to enumerate the 6 (or 5) immediate neighbors,
+then selects the one minimising great-circle distance to `target`.
 """
-function gridPathCellsHybrid(start_::H3Index, end_::H3Index; max_depth::Int=40)
-    path = H3Index[]
-    _hybrid_recurse!(path, start_, end_, getResolution(start_), max_depth)
-    return path
+function _step_toward(current::H3Index, target::H3Index)::H3Index
+    _, target_ll = cellToLatLng(target)
+    err, disk = gridDisk(current, 1)
+    err != E_SUCCESS && return current
+    best = current
+    best_dist = Inf
+    for cell in disk
+        cell == H3_NULL && continue
+        cell == current && continue
+        _, cell_ll = cellToLatLng(cell)
+        d = greatCircleDistanceRads(cell_ll, target_ll)
+        if d < best_dist
+            best_dist = d
+            best = cell
+        end
+    end
+    return best
 end
 
-function _hybrid_recurse!(
-    path::Vector{H3Index},
-    c0::H3Index, c1::H3Index,
-    h3_res::Int, depth::Int,
-)
-    err, cube_path = _cube_gridPathCells(c0, c1)
-    if err == E_SUCCESS && !isempty(cube_path) && cube_path[end] == c1
-        offset = isempty(path) ? 1 : 2
-        append!(path, @view cube_path[offset:end])
-        return nothing
+"""
+    gridPathCellsRobust(start_::H3Index, end_::H3Index) -> Vector{H3Index}
+
+Compute a path of H3 cells between `start_` and `end_` using cube
+interpolation with greedy re-anchoring at icosahedral face boundaries.
+
+Tries `FastH3.gridPathCells` (cube) from the current position toward `end_`.
+When cube fails (cross-face `E_DOMAIN` or incorrect endpoint due to IJ mapping
+errors), advances one cell toward `end_` by picking the geographically closest
+neighbor, then retries cube from the new anchor.
+
+For same-face paths this is identical to `FastH3.gridPathCells` (single cube
+call, no overhead).  For cross-face paths the greedy hops bridge the face
+boundary with O(1) work per hop, then cube handles the remainder.
+"""
+function gridPathCellsRobust(start_::H3Index, end_::H3Index)
+    err, cube_path = _cube_gridPathCells(start_, end_)
+    if err == E_SUCCESS && !isempty(cube_path) && cube_path[end] == end_
+        return cube_path
     end
 
-    if c0 == c1
-        isempty(path) && push!(path, c0)
-        return nothing
-    end
-
-    if _is_geographic_neighbor(c0, c1)
-        if isempty(path)
-            push!(path, c0)
+    result = H3Index[]
+    current = start_
+    last_failed_bc = getBaseCellNumber(current)
+    for _ in 1:10_000
+        if current == end_
+            if isempty(result) || result[end] != current
+                push!(result, current)
+            end
+            return result
         end
-        push!(path, c1)
-        return nothing
+
+        current_bc = getBaseCellNumber(current)
+        if current_bc != last_failed_bc
+            err, cube_path = _cube_gridPathCells(current, end_)
+            if err == E_SUCCESS && !isempty(cube_path) && cube_path[end] == end_
+                start_idx = (!isempty(result) && result[end] == cube_path[1]) ? 2 : 1
+                append!(result, @view cube_path[start_idx:end])
+                return result
+            end
+            last_failed_bc = current_bc
+        end
+
+        if isempty(result) || result[end] != current
+            push!(result, current)
+        end
+        next = _step_toward(current, end_)
+        next == current && break
+        current = next
     end
 
-    if depth <= 0
-        gc_path = gridPathCells(c0, c1)
-        offset = isempty(path) ? 1 : 2
-        append!(path, @view gc_path[offset:end])
-        return nothing
+    if isempty(result) || result[end] != end_
+        push!(result, end_)
     end
+    return result
+end
 
-    _, p0 = cellToLatLng(c0)
-    _, p1 = cellToLatLng(c1)
-    mid_ll = _interpolate_great_circle(p0, p1, 0.5)
-    _, mid_cell = latLngToCell(mid_ll, h3_res)
+"""
+    gridDistanceRobust(origin::H3Index, h3::H3Index) -> (H3Error, Int64)
 
-    if mid_cell == c0 || mid_cell == c1
-        gc_path = gridPathCells(c0, c1)
-        offset = isempty(path) ? 1 : 2
-        append!(path, @view gc_path[offset:end])
-        return nothing
+Number of grid hops along [`gridPathCellsRobust`](@ref): `length(path) - 1`.
+
+For two valid cells at the same resolution, this matches [`FastH3.gridDistance`](@ref)
+when the core implementation succeeds. When `gridDistance` returns `E_DOMAIN` or
+other failures for valid same-res cells, a robust path is still computed.
+
+Directed edges and other indices where `isValidCell` is false but
+`gridDistance` succeeds are handled like `gridDistance` (no robust walk).
+"""
+function gridDistanceRobust(origin::H3Index, h3::H3Index)::Tuple{H3Error,Int64}
+    err_gd, dist_gd = gridDistance(origin, h3)
+    if err_gd == E_RES_MISMATCH || err_gd == E_CELL_INVALID
+        return (err_gd, Int64(0))
     end
-
-    _hybrid_recurse!(path, c0, mid_cell, h3_res, depth - 1)
-    _hybrid_recurse!(path, mid_cell, c1, h3_res, depth - 1)
-    return nothing
+    if err_gd == E_SUCCESS && isValidCell(origin) && isValidCell(h3)
+        path = gridPathCellsRobust(origin, h3)
+        return (E_SUCCESS, Int64(length(path) - 1))
+    end
+    if err_gd == E_SUCCESS
+        return (E_SUCCESS, dist_gd)
+    end
+    path = gridPathCellsRobust(origin, h3)
+    return (E_SUCCESS, Int64(length(path) - 1))
 end

@@ -121,7 +121,7 @@ function parse_perf_args(; description="FastH3 performance script")
         help = "Substring filter on scenario name"
         default = ""
         "--method"
-        help = "Which implementation to profile: cube, gc, hybrid, or all"
+        help = "Which implementation to profile: cube, gc, robust, or all"
         default = "all"
     end
     return ArgParse.parse_args(s)

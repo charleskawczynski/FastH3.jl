@@ -11,9 +11,10 @@ path = FastH3.FastH3Extension.gridPathCells(c0, c1)
 
 ## Algorithm Comparison
 
-FastH3 ships three ways to compute a path of H3 cells between two endpoints.
-They differ in algorithm, robustness, speed, and the semantic meaning of the
-path they return.
+FastH3 ships three path algorithms in the core module and extension, plus
+[`FastH3.FastH3Extension.gridDistanceRobust`](@ref) for hop counts along the
+robust path. They differ in algorithm, robustness, speed, and the semantic
+meaning of the path they return.
 
 ### `FastH3.gridPathCells` — Cube Interpolation
 
@@ -95,68 +96,71 @@ FastH3.FastH3Extension.gridPathCells!(c0, c1) do cell
 end
 ```
 
-### `FastH3.FastH3Extension.gridPathCellsHybrid` — Piecewise Cube with GC Fallback
+### `FastH3.FastH3Extension.gridPathCellsRobust` — Cube with Greedy Re-Anchoring
 
-A hybrid that gets cube speed for the common case and GC robustness for
-cross-face paths.
+A surgical fix for the cube algorithm's cross-face limitation. It keeps the
+cube interpolation algorithm intact but, when a step fails at a face boundary,
+performs a single greedy neighbor hop toward the target and re-anchors the
+cube coordinate system from the new cell.
 
-The decision logic at each recursion level:
+The algorithm:
 
 ```mermaid
 flowchart TD
-    entry["gridPathCellsHybrid(c0, c1)"] --> tryCube{"cube(c0, c1) succeeds\nand ends at c1?"}
-    tryCube -->|Yes| returnCube["Return cube path"]
-    tryCube -->|No| trivial{"c0 == c1\nor neighbors?"}
-    trivial -->|Yes| returnDirect["Return directly"]
-    trivial -->|No| slerp["mid = SLERP midpoint → latLngToCell"]
-    slerp --> checkMid{"mid == c0\nor mid == c1?"}
-    checkMid -->|Yes| fallbackGC["Fall back to GC walk"]
-    checkMid -->|No| recurseLeft["hybrid(c0, mid)"]
-    recurseLeft --> recurseRight["hybrid(mid, c1)"]
-    recurseRight --> stitch["Stitch: left ++ right"]
+    entry["gridPathCellsRobust(c0, c1)"] --> loop["current = c0"]
+    loop --> tryCube{"cube(current, c1)\nsucceeds and correct endpoint?"}
+    tryCube -->|Yes| appendCube["Append cube path to result"]
+    appendCube --> done["Return result"]
+    tryCube -->|No| checkDone{"current == c1?"}
+    checkDone -->|Yes| done
+    checkDone -->|No| hop["Greedy hop: pick neighbor\nof current closest to c1"]
+    hop --> pushCell["Push current to result, advance"]
+    pushCell --> loop
 ```
 
-For cross-face paths, the recursion splits at the great-circle midpoint and
-applies cube interpolation to each same-face sub-segment:
+For cross-face paths, cube handles the same-face segments while greedy hops
+bridge the face boundary:
 
 ```mermaid
 graph LR
-    subgraph faceA ["Face A — cube interpolation"]
-        S["Start ●"] --> a1["·"] --> a2["·"] --> a3["·"]
+    subgraph faceA_r ["Face A — cube"]
+        S_r["Start ●"] --> ar1["·"] --> ar2["·"]
     end
-    a3 --> mid["Mid (SLERP)"]
-    subgraph faceB ["Face B — cube interpolation"]
-        mid --> b1["·"] --> b2["·"] --> E["End ●"]
+    subgraph boundary_r ["Face boundary — greedy hops"]
+        ar2 --> g1["hop"] --> g2["hop"]
+    end
+    subgraph faceB_r ["Face B — cube"]
+        g2 --> br1["·"] --> br2["·"] --> E_r["End ●"]
     end
 ```
 
-The recursion depth is O(log n) where n is the number of cells, bounded by
-`max_depth`. Each face-local segment uses fast cube interpolation. Only the
-handful of cells at face boundaries may trigger a GC walk fallback.
+Each greedy hop is O(1): `gridDisk(current, 1)` gives 7 cells, pick the one
+with minimum `greatCircleDistanceRads` to the target. No SLERP, no
+great-circle intersection math, no recursion.
 
 | Property | Value |
 |:--|:--|
-| **Path length** | Piecewise-shortest within each icosahedral face. The total may differ from both the global `gridDistance` and the great-circle cell count. |
-| **Path meaning** | Within each face, follows cube (IJK) interpolation. Face-boundary waypoints are determined by the great circle. Neither the global shortest grid path nor the great-circle-faithful path. |
-| **Speed** | Same-face: identical to cube. Cross-face: ~2–8x faster than the pure great-circle walk (O(log n) bisections, then cube for each sub-segment). |
-| **Robustness** | Always succeeds — inherits GC walk robustness for any segment that cube cannot handle. |
+| **Path length** | Close to `gridDistance + 1`. Within each face, produces the shortest grid path. At boundaries, the greedy hop picks the geographically closest neighbor. |
+| **Path meaning** | Closest to what cube interpolation would produce if the IJ coordinate system worked across faces. |
+| **Speed** | Same-face: identical to cube (single call, no overhead). Cross-face: greedy hops at O(1) per hop, then cube for the remainder. |
+| **Robustness** | Always succeeds — greedy geographic hops bridge any face boundary. |
 
 ```julia
-path = FastH3.FastH3Extension.gridPathCellsHybrid(c0, c1)
+path = FastH3.FastH3Extension.gridPathCellsRobust(c0, c1)
 # always returns a valid path
 ```
 
 ## Summary Table
 
-| | Cube | Great-Circle Walk | Hybrid |
+| | Cube | Great-Circle Walk | Robust |
 |:--|:--|:--|:--|
-| **Function** | `FastH3.gridPathCells` | `FastH3.FastH3Extension.gridPathCells` | `FastH3.FastH3Extension.gridPathCellsHybrid` |
+| **Function** | `FastH3.gridPathCells` | `FastH3.FastH3Extension.gridPathCells` | `FastH3.FastH3Extension.gridPathCellsRobust` |
 | **Returns** | `(H3Error, Vector{H3Index})` | `Vector{H3Index}` | `Vector{H3Index}` |
 | **Always succeeds** | No | Yes | Yes |
-| **Shortest path** | Yes (when it works) | No | Piecewise per face |
+| **Shortest path** | Yes (when it works) | No | Approximately (greedy at boundaries) |
 | **Follows great circle** | No | Yes | No |
 | **Cross-face** | Fails or wrong result | Works | Works |
-| **Relative speed** | 1x | 10–25x slower | ~1x same-face, ~2–8x slower cross-face |
+| **Relative speed** | 1x | 10–25x slower | ~1x same-face, fast cross-face |
 
 ## When to Use Which
 
@@ -167,15 +171,18 @@ path = FastH3.FastH3Extension.gridPathCellsHybrid(c0, c1)
   `FastH3.FastH3Extension.gridPathCells`. It faithfully traces the spherical
   arc, which matters for applications like line-of-sight, coverage analysis, or
   trajectory mapping where the physical path on the globe is significant.
-- **General-purpose robust pathing**: Use
-  `FastH3.FastH3Extension.gridPathCellsHybrid`. It automatically uses the fast
-  cube algorithm where possible and gracefully handles cross-face paths. A good
-  default when you need reliability without paying full great-circle cost.
+- **Robust drop-in replacement for cube**: Use
+  `FastH3.FastH3Extension.gridPathCellsRobust`. It produces the same path as
+  cube interpolation for same-face paths and surgically bridges face boundaries
+  with greedy hops. The simplest robust option with minimal algorithmic
+  complexity. Use [`FastH3.FastH3Extension.gridDistanceRobust`](@ref) for the
+  hop count along that path.
 
 ## API Reference
 
 ```@docs
 FastH3.FastH3Extension.gridPathCells!
 FastH3.FastH3Extension.gridPathCells
-FastH3.FastH3Extension.gridPathCellsHybrid
+FastH3.FastH3Extension.gridPathCellsRobust
+FastH3.FastH3Extension.gridDistanceRobust
 ```

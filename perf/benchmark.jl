@@ -4,7 +4,7 @@ Benchmark gridPathCells across a wide range of inputs.
 Compares three implementations:
   - cube:   FastH3.gridPathCells (cube-coordinate interpolation)
   - gc:     FastH3.FastH3Extension.gridPathCells (great-circle walk)
-  - hybrid: FastH3.FastH3Extension.gridPathCellsHybrid (piecewise cube + GC fallback)
+  - robust: FastH3.FastH3Extension.gridPathCellsRobust (cube + greedy re-anchoring)
 
 Usage:
   julia --project=perf perf/benchmark.jl
@@ -25,7 +25,7 @@ function _fmt_time(ns::Float64)
 end
 
 function main()
-    args = parse_perf_args(; description="Benchmark gridPathCells (cube vs gc vs hybrid)")
+    args = parse_perf_args(; description="Benchmark gridPathCells (cube vs gc vs robust)")
     scenarios = filter_scenarios(build_scenarios(), args)
 
     if isempty(scenarios)
@@ -33,23 +33,23 @@ function main()
         return
     end
 
-    println("gridPathCells benchmark — cube vs gc vs hybrid ($(length(scenarios)) scenarios)\n")
+    println("gridPathCells benchmark — cube vs gc vs robust ($(length(scenarios)) scenarios)\n")
     hdr = string(
         rpad("scenario", 22), " │ ",
         rpad("res", 4), "  ",
         rpad("dist (hops)", 11), " │ ",
         rpad("cells(cube)", 11), " ",
         rpad("cells(gc)", 11), " ",
-        rpad("cells(hyb)", 11), " │ ",
+        rpad("cells(rob)", 11), " │ ",
         rpad("min(cube)", 12), " ",
         rpad("min(gc)", 12), " ",
-        rpad("min(hyb)", 12), " │ ",
+        rpad("min(rob)", 12), " │ ",
         rpad("alloc(cube)", 11), " ",
         rpad("alloc(gc)", 11), " ",
-        rpad("alloc(hyb)", 11), " │ ",
+        rpad("alloc(rob)", 11), " │ ",
         rpad("mem(cube)", 10), " ",
         rpad("mem(gc)", 10), " ",
-        rpad("mem(hyb)", 10), " │",
+        rpad("mem(rob)", 10), " │",
     )
     println(hdr)
     println(replace(hdr, r"[^│\n]" => "─"))
@@ -59,7 +59,7 @@ function main()
     for sc in scenarios
         FastH3.gridPathCells(sc.start_cell, sc.end_cell)
         Ext.gridPathCells(sc.start_cell, sc.end_cell)
-        Ext.gridPathCellsHybrid(sc.start_cell, sc.end_cell)
+        Ext.gridPathCellsRobust(sc.start_cell, sc.end_cell)
 
         b_cube = BenchmarkTools.@benchmark FastH3.gridPathCells($(sc.start_cell), $(sc.end_cell))
         err_c, path_c = FastH3.gridPathCells(sc.start_cell, sc.end_cell)
@@ -69,9 +69,9 @@ function main()
         path_gc = Ext.gridPathCells(sc.start_cell, sc.end_cell)
         n_gc = length(path_gc)
 
-        b_hyb = BenchmarkTools.@benchmark $(Ext).gridPathCellsHybrid($(sc.start_cell), $(sc.end_cell))
-        path_hyb = Ext.gridPathCellsHybrid(sc.start_cell, sc.end_cell)
-        n_hyb = length(path_hyb)
+        b_rob = BenchmarkTools.@benchmark $(Ext).gridPathCellsRobust($(sc.start_cell), $(sc.end_cell))
+        path_rob = Ext.gridPathCellsRobust(sc.start_cell, sc.end_cell)
+        n_rob = length(path_rob)
 
         println(
             rpad(sc.name, 22), " │ ",
@@ -79,16 +79,16 @@ function main()
             rpad(string(sc.distance), 11), " │ ",
             rpad(string(n_cube), 11), " ",
             rpad(string(n_gc), 11), " ",
-            rpad(string(n_hyb), 11), " │ ",
+            rpad(string(n_rob), 11), " │ ",
             rpad(_fmt_time(minimum(b_cube.times)), 12), " ",
             rpad(_fmt_time(minimum(b_gc.times)), 12), " ",
-            rpad(_fmt_time(minimum(b_hyb.times)), 12), " │ ",
+            rpad(_fmt_time(minimum(b_rob.times)), 12), " │ ",
             rpad(string(b_cube.allocs), 11), " ",
             rpad(string(b_gc.allocs), 11), " ",
-            rpad(string(b_hyb.allocs), 11), " │ ",
+            rpad(string(b_rob.allocs), 11), " │ ",
             rpad(BenchmarkTools.prettymemory(b_cube.memory), 10), " ",
             rpad(BenchmarkTools.prettymemory(b_gc.memory), 10), " ",
-            rpad(BenchmarkTools.prettymemory(b_hyb.memory), 10), " │",
+            rpad(BenchmarkTools.prettymemory(b_rob.memory), 10), " │",
         )
     end
 end
