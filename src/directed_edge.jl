@@ -159,6 +159,32 @@ function cellsToDirectedEdge(origin::H3Index, destination::H3Index)::Tuple{H3Err
 end
 
 """
+    originToDirectedEdges(op::F, origin::H3Index) -> H3Error where {F}
+
+Call `op(edge)` for each directed edge originating from the cell (no result vector allocated).
+
+See also the H3 C API: [`originToDirectedEdges`](https://h3geo.org/docs/api/uniedge#origintodirectededges)
+"""
+function originToDirectedEdges(op::F, origin::H3Index)::H3Error where {F}
+    if !isValidCell(origin)
+        return E_CELL_INVALID
+    end
+
+    isPent = isPentagon(origin)
+
+    for dir_i in Int(K_AXES_DIGIT):Int(IJ_AXES_DIGIT)
+        if isPent && dir_i == Int(K_AXES_DIGIT)
+            continue
+        end
+        edge = h3_set_mode(origin, H3_DIRECTEDEDGE_MODE)
+        edge = h3_set_reserved_bits(edge, dir_i)
+        op(edge)
+    end
+
+    return E_SUCCESS
+end
+
+"""
     originToDirectedEdges(origin::H3Index) -> (H3Error, Vector{H3Index})
 
 Get all directed edges originating from a cell (6 for hexagons, 5 for pentagons).
@@ -170,18 +196,11 @@ function originToDirectedEdges(origin::H3Index)::Tuple{H3Error, Vector{H3Index}}
         return (E_CELL_INVALID, H3Index[])
     end
 
-    isPent = isPentagon(origin)
     edges = H3Index[]
-
-    for dir_i in Int(K_AXES_DIGIT):Int(IJ_AXES_DIGIT)
-        if isPent && dir_i == Int(K_AXES_DIGIT)
-            continue
-        end
-        edge = h3_set_mode(origin, H3_DIRECTEDEDGE_MODE)
-        edge = h3_set_reserved_bits(edge, dir_i)
+    err = originToDirectedEdges(origin) do edge
         push!(edges, edge)
     end
-
+    err != E_SUCCESS && return (err, H3Index[])
     return (E_SUCCESS, edges)
 end
 

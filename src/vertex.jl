@@ -82,6 +82,31 @@ function cellToVertex(origin::H3Index, vertexNum::Int)::Tuple{H3Error, H3Index}
 end
 
 """
+    cellToVertexes(op::F, origin::H3Index) -> H3Error where {F}
+
+Call `op(vertex)` for each vertex H3 index of the cell (no result vector allocated).
+
+See also the H3 C API: [`cellToVertexes`](https://h3geo.org/docs/api/vertex#celltovertexes)
+"""
+function cellToVertexes(op::F, origin::H3Index)::H3Error where {F}
+    if !isValidCell(origin)
+        return E_CELL_INVALID
+    end
+
+    numVerts = isPentagon(origin) ? NUM_PENT_VERTS : NUM_HEX_VERTS
+
+    for v in 0:(numVerts - 1)
+        err, vert = cellToVertex(origin, v)
+        if err != E_SUCCESS
+            return err
+        end
+        op(vert)
+    end
+
+    return E_SUCCESS
+end
+
+"""
     cellToVertexes(origin::H3Index) -> (H3Error, Vector{H3Index})
 
 Get all vertex H3 indexes for a cell (5 for pentagons, 6 for hexagons).
@@ -96,14 +121,13 @@ function cellToVertexes(origin::H3Index)::Tuple{H3Error, Vector{H3Index}}
     numVerts = isPentagon(origin) ? NUM_PENT_VERTS : NUM_HEX_VERTS
     verts = Vector{H3Index}(undef, numVerts)
 
-    for v in 0:(numVerts - 1)
-        err, vert = cellToVertex(origin, v)
-        if err != E_SUCCESS
-            return (err, H3Index[])
-        end
-        verts[v + 1] = vert
+    iref = Ref(1)
+    err = cellToVertexes(origin) do vert
+        i = iref[]
+        @inbounds verts[i] = vert
+        iref[] = i + 1
     end
-
+    err != E_SUCCESS && return (err, H3Index[])
     return (E_SUCCESS, verts)
 end
 
