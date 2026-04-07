@@ -15,6 +15,8 @@ Key properties:
 - **Zero-allocation scalars** — core index operations allocate nothing on the heap.
 - **Full H3 v4 API** — covers indexing, inspection, traversal, hierarchy, directed
   edges, vertexes, and measurement functions.
+- **Callback overloads** — many multi-result APIs also support `op`-first enumeration
+  without allocating the result `Vector`; see [Callback enumeration](api/callbacks.md).
 
 ## Quick Start
 
@@ -43,6 +45,7 @@ FastH3.FastH3
 
 ```@contents
 Pages = [
+    "api/callbacks.md",
     "api/indexing.md",
     "api/inspection.md",
     "api/traversal.md",

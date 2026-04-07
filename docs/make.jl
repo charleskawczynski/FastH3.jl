@@ -12,6 +12,7 @@ makedocs(;
     pages=[
         "Home" => "index.md",
         "API Reference" => [
+            "Callback enumeration" => "api/callbacks.md",
             "Indexing" => "api/indexing.md",
             "Inspection" => "api/inspection.md",
             "Traversal" => "api/traversal.md",

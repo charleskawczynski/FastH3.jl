@@ -705,7 +705,8 @@ end
     getIcosahedronFaces(op::F, h::H3Index) -> H3Error where {F}
 
 Call `op(face)` for each assigned icosahedron face index (omits internal `INVALID_FACE` slots;
-order matches increasing slot index among valid faces).
+order matches increasing slot index among valid faces). For the fixed-length `Vector{Int}` buffer
+including sentinel slots, use the `getIcosahedronFaces(h)` overload.
 
 See also the H3 C API: [`getIcosahedronFaces`](https://h3geo.org/docs/api/inspection#geticosahedronfaces)
 """
