@@ -199,6 +199,60 @@ function maxGridRingSize(k::Int)::Tuple{H3Error, Int64}
 end
 
 """
+    gridDiskDistancesUnsafe(op::F, origin::H3Index, k::Int) -> H3Error where {F}
+
+Call `op(cell, ring)` for each cell within grid distance `k` of `origin`, where `ring` is the
+grid distance from `origin` (no result vectors allocated).
+
+Fails with `E_PENTAGON` if a pentagon is encountered. Use [`gridDiskDistances`](@ref) for
+a safe fallback.
+
+See also the H3 C API: [`gridDiskDistancesUnsafe`](https://h3geo.org/docs/api/traversal#griddiskdistancesunsafe)
+"""
+function gridDiskDistancesUnsafe(op::F, origin::H3Index, k::Int)::H3Error where {F}
+    err, maxSize = maxGridDiskSize(k)
+    if err != E_SUCCESS
+        return err
+    end
+
+    op(origin, 0)
+
+    if isPentagon(origin)
+        return E_PENTAGON
+    end
+
+    rotations = 0
+
+    for ring in 1:k
+        err2, origin, rotations = h3NeighborRotations(origin, NEXT_RING_DIRECTION, rotations)
+        if err2 != E_SUCCESS
+            return err2
+        end
+
+        if isPentagon(origin)
+            return E_PENTAGON
+        end
+
+        for direction in 1:6
+            for _ in 1:ring
+                err2, origin, rotations = h3NeighborRotations(origin, DIRECTIONS[direction], rotations)
+                if err2 != E_SUCCESS
+                    return err2
+                end
+
+                op(origin, ring)
+
+                if isPentagon(origin)
+                    return E_PENTAGON
+                end
+            end
+        end
+    end
+
+    return E_SUCCESS
+end
+
+"""
     gridDiskDistancesUnsafe(origin::H3Index, k::Int) -> (H3Error, Vector{H3Index}, Vector{Int})
 
 Produce all cells within grid distance `k` of `origin`, along with their distances.
@@ -215,47 +269,29 @@ function gridDiskDistancesUnsafe(origin::H3Index, k::Int)::Tuple{H3Error, Vector
 
     out = Vector{H3Index}(undef, maxSize)
     distances = Vector{Int}(undef, maxSize)
-    idx = 1
-
-    out[idx] = origin
-    distances[idx] = 0
-    idx += 1
-
-    if isPentagon(origin)
-        return (E_PENTAGON, H3Index[], Int[])
+    iref = Ref(1)
+    err2 = gridDiskDistancesUnsafe(origin, k) do cell, ring
+        i = iref[]
+        @inbounds out[i] = cell
+        @inbounds distances[i] = ring
+        iref[] = i + 1
     end
-
-    rotations = 0
-
-    for ring in 1:k
-        err2, origin, rotations = h3NeighborRotations(origin, NEXT_RING_DIRECTION, rotations)
-        if err2 != E_SUCCESS
-            return (err2, H3Index[], Int[])
-        end
-
-        if isPentagon(origin)
-            return (E_PENTAGON, H3Index[], Int[])
-        end
-
-        for direction in 1:6
-            for _ in 1:ring
-                err2, origin, rotations = h3NeighborRotations(origin, DIRECTIONS[direction], rotations)
-                if err2 != E_SUCCESS
-                    return (err2, H3Index[], Int[])
-                end
-
-                out[idx] = origin
-                distances[idx] = ring
-                idx += 1
-
-                if isPentagon(origin)
-                    return (E_PENTAGON, H3Index[], Int[])
-                end
-            end
-        end
-    end
-
+    err2 != E_SUCCESS && return (err2, H3Index[], Int[])
     return (E_SUCCESS, out, distances)
+end
+
+"""
+    gridDiskUnsafe(op::F, origin::H3Index, k::Int) -> H3Error where {F}
+
+Call `op(cell)` for each cell within grid distance `k` of `origin` (no result vector allocated).
+
+Fails with `E_PENTAGON` if a pentagon is encountered. Use [`gridDisk`](@ref) for
+a safe fallback.
+
+See also the H3 C API: [`gridDiskUnsafe`](https://h3geo.org/docs/api/traversal#gridDiskunsafe)
+"""
+function gridDiskUnsafe(op::F, origin::H3Index, k::Int)::H3Error where {F}
+    return gridDiskDistancesUnsafe((c, _) -> op(c), origin, k)
 end
 
 """
@@ -347,6 +383,69 @@ function gridDiskDistances(origin::H3Index, k::Int)::Tuple{H3Error, Vector{H3Ind
 end
 
 """
+    gridRingUnsafe(op::F, origin::H3Index, k::Int) -> H3Error where {F}
+
+Call `op(cell)` for each cell on the ring at exactly grid distance `k` from `origin`
+(no result vector allocated).
+
+Fails with `E_PENTAGON` if a pentagon is encountered.
+
+See also the H3 C API: [`gridRingUnsafe`](https://h3geo.org/docs/api/traversal#gridringunsafe)
+"""
+function gridRingUnsafe(op::F, origin::H3Index, k::Int)::H3Error where {F}
+    if k < 0
+        return E_DOMAIN
+    end
+    if k == 0
+        op(origin)
+        return E_SUCCESS
+    end
+
+    if isPentagon(origin)
+        return E_PENTAGON
+    end
+
+    ringCell = origin
+    rotations = 0
+
+    for _ in 1:k
+        err, ringCell, rotations = h3NeighborRotations(ringCell, NEXT_RING_DIRECTION, rotations)
+        if err != E_SUCCESS
+            return err
+        end
+        if isPentagon(ringCell)
+            return E_PENTAGON
+        end
+    end
+
+    lastIndex = ringCell
+    op(ringCell)
+
+    for direction in 1:6
+        for pos in 1:k
+            err, ringCell, rotations = h3NeighborRotations(ringCell, DIRECTIONS[direction], rotations)
+            if err != E_SUCCESS
+                return err
+            end
+
+            if pos != k || direction != 6
+                op(ringCell)
+            end
+
+            if isPentagon(ringCell)
+                return E_PENTAGON
+            end
+        end
+    end
+
+    if lastIndex != ringCell
+        return E_FAILED
+    end
+
+    return E_SUCCESS
+end
+
+"""
     gridRingUnsafe(origin::H3Index, k::Int) -> (H3Error, Vector{H3Index})
 
 Produce the cells forming the ring at exactly grid distance `k` from `origin`.
@@ -362,52 +461,15 @@ function gridRingUnsafe(origin::H3Index, k::Int)::Tuple{H3Error, Vector{H3Index}
         return (E_SUCCESS, H3Index[origin])
     end
 
-    if isPentagon(origin)
-        return (E_PENTAGON, H3Index[])
-    end
-
     ringSize = 6 * k
     out = Vector{H3Index}(undef, ringSize)
-
-    ringCell = origin
-    rotations = 0
-
-    for _ in 1:k
-        err, ringCell, rotations = h3NeighborRotations(ringCell, NEXT_RING_DIRECTION, rotations)
-        if err != E_SUCCESS
-            return (err, H3Index[])
-        end
-        if isPentagon(ringCell)
-            return (E_PENTAGON, H3Index[])
-        end
+    iref = Ref(1)
+    err = gridRingUnsafe(origin, k) do cell
+        i = iref[]
+        @inbounds out[i] = cell
+        iref[] = i + 1
     end
-
-    lastIndex = ringCell
-    out[1] = ringCell
-    idx = 2
-
-    for direction in 1:6
-        for pos in 1:k
-            err, ringCell, rotations = h3NeighborRotations(ringCell, DIRECTIONS[direction], rotations)
-            if err != E_SUCCESS
-                return (err, H3Index[])
-            end
-
-            if pos != k || direction != 6
-                out[idx] = ringCell
-                idx += 1
-            end
-
-            if isPentagon(ringCell)
-                return (E_PENTAGON, H3Index[])
-            end
-        end
-    end
-
-    if lastIndex != ringCell
-        return (E_FAILED, H3Index[])
-    end
-
+    err != E_SUCCESS && return (err, H3Index[])
     return (E_SUCCESS, out)
 end
 

@@ -2,6 +2,10 @@ using Aqua
 using JET
 using CodeComplexity
 
+function _qc_noop_h3(::H3Index) end
+function _qc_noop_h3_ring(::H3Index, ::Int) end
+function _qc_noop_int(::Int) end
+
 @testset "Code quality" begin
 
     @testset "Aqua" begin
@@ -36,12 +40,14 @@ using CodeComplexity
             @test_opt cellToCenterChild(cell, 10)
             @test_opt cellToChildrenSize(cell, 10)
             @test_opt cellToChildren(cell, 10)
+            @test_opt cellToChildren(_qc_noop_h3, cell, 10)
         end
 
         @testset "Compact / uncompact" begin
             @test_opt compactCells(cells)
             @test_opt uncompactCellsSize(cells, 10)
             @test_opt uncompactCells(cells, 10)
+            @test_opt uncompactCells(_qc_noop_h3, cells, 10)
         end
 
         @testset "Grid traversal" begin
@@ -51,9 +57,13 @@ using CodeComplexity
             @test_opt gridDiskUnsafe(cell, 1)
             @test_opt gridDiskDistancesUnsafe(cell, 1)
             @test_opt gridRingUnsafe(cell, 1)
+            @test_opt gridDiskUnsafe(_qc_noop_h3, cell, 1)
+            @test_opt gridDiskDistancesUnsafe(_qc_noop_h3_ring, cell, 1)
+            @test_opt gridRingUnsafe(_qc_noop_h3, cell, 1)
             @test_opt gridDistance(cell, cell2)
             @test_opt gridPathCellsSize(cell, cell2)
             @test_opt gridPathCells(cell, cell2)
+            @test_opt gridPathCells(_qc_noop_h3, cell, cell2)
             @test_opt cellToLocalIj(cell, cell2, UInt32(0))
             @test_opt localIjToCell(cell, ij, UInt32(0))
             @test_opt areNeighborCells(cell, cell2)
@@ -66,6 +76,7 @@ using CodeComplexity
             @test_opt directedEdgeToCells(cell)
             @test_opt cellsToDirectedEdge(cell, cell2)
             @test_opt originToDirectedEdges(cell)
+            @test_opt originToDirectedEdges(_qc_noop_h3, cell)
             @test_opt directedEdgeToBoundary(cell)
             @test_opt reverseDirectedEdge(cell)
         end
@@ -73,6 +84,7 @@ using CodeComplexity
         @testset "Vertexes" begin
             @test_opt cellToVertex(cell, 0)
             @test_opt cellToVertexes(cell)
+            @test_opt cellToVertexes(_qc_noop_h3, cell)
             @test_opt vertexToLatLng(cell)
             @test_opt isValidVertex(cell)
         end
@@ -94,11 +106,14 @@ using CodeComplexity
         @testset "Faces" begin
             @test_opt maxFaceCount(cell)
             @test_opt getIcosahedronFaces(cell)
+            @test_opt getIcosahedronFaces(_qc_noop_int, cell)
         end
 
         @testset "Pentagons and res0" begin
             @test_opt getPentagons(5)
+            @test_opt getPentagons(_qc_noop_h3, 5)
             @test_opt getRes0Cells()
+            @test_opt getRes0Cells(_qc_noop_h3)
         end
 
         @testset "String conversion" begin
@@ -129,6 +144,7 @@ using CodeComplexity
         @assert err == E_SUCCESS
         err, ij = cellToLocalIj(cell, neighbor, UInt32(0))
         @assert err == E_SUCCESS
+        cells_cb = H3Index[cell]
 
         # Warmup
         getResolution(cell)
@@ -166,6 +182,17 @@ using CodeComplexity
         localIjToCell(cell, ij, UInt32(0))
         gridPathCellsSize(cell, neighbor)
         cellsToDirectedEdge(cell, neighbor)
+        cellToChildren(_qc_noop_h3, cell, 8)
+        uncompactCells(_qc_noop_h3, cells_cb, 8)
+        getPentagons(_qc_noop_h3, 5)
+        getRes0Cells(_qc_noop_h3)
+        getIcosahedronFaces(_qc_noop_int, cell)
+        gridDiskDistancesUnsafe(_qc_noop_h3_ring, cell, 1)
+        gridDiskUnsafe(_qc_noop_h3, cell, 1)
+        gridRingUnsafe(_qc_noop_h3, cell, 1)
+        gridPathCells(_qc_noop_h3, cell, neighbor)
+        cellToVertexes(_qc_noop_h3, cell)
+        originToDirectedEdges(_qc_noop_h3, cell)
 
         @testset "Bit manipulation" begin
             @test @allocated(getResolution(cell)) == 0
@@ -217,6 +244,20 @@ using CodeComplexity
             @test @allocated(localIjToCell(cell, ij, UInt32(0))) == 0
             @test @allocated(gridPathCellsSize(cell, neighbor)) == 0
             @test @allocated(cellsToDirectedEdge(cell, neighbor)) == 0
+        end
+
+        @testset "Callback enumeration (no heap for output vectors)" begin
+            @test @allocated(cellToChildren(_qc_noop_h3, cell, 8)) == 0
+            @test @allocated(uncompactCells(_qc_noop_h3, cells_cb, 8)) == 0
+            @test @allocated(getPentagons(_qc_noop_h3, 5)) == 0
+            @test @allocated(getRes0Cells(_qc_noop_h3)) == 0
+            @test @allocated(getIcosahedronFaces(_qc_noop_int, cell)) == 0
+            @test @allocated(gridDiskDistancesUnsafe(_qc_noop_h3_ring, cell, 1)) == 0
+            @test @allocated(gridDiskUnsafe(_qc_noop_h3, cell, 1)) == 0
+            @test @allocated(gridRingUnsafe(_qc_noop_h3, cell, 1)) == 0
+            @test @allocated(gridPathCells(_qc_noop_h3, cell, neighbor)) == 0
+            @test @allocated(cellToVertexes(_qc_noop_h3, cell)) == 0
+            @test @allocated(originToDirectedEdges(_qc_noop_h3, cell)) == 0
         end
     end
 end

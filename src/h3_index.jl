@@ -510,6 +510,25 @@ function pentagonCount()::Int
 end
 
 """
+    getPentagons(op::F, res::Int) -> H3Error where {F}
+
+Call `op(h)` for each pentagon cell index at resolution `res` (no result vector allocated).
+
+See also the H3 C API: [`getPentagons`](https://h3geo.org/docs/api/misc#getpentagons)
+"""
+function getPentagons(op::F, res::Int)::H3Error where {F}
+    if res < 0 || res > MAX_H3_RES
+        return E_RES_DOMAIN
+    end
+    for bc in 0:(NUM_BASE_CELLS - 1)
+        if _isBaseCellPentagon(bc)
+            op(setH3Index(res, bc, CENTER_DIGIT))
+        end
+    end
+    return E_SUCCESS
+end
+
+"""
     getPentagons(res::Int) -> Tuple{H3Error, Vector{H3Index}}
 
 Get all pentagon cell indexes at the given resolution.
@@ -521,16 +540,32 @@ function getPentagons(res::Int)::Tuple{H3Error, Vector{H3Index}}
         return (E_RES_DOMAIN, H3Index[])
     end
     out = H3Index[]
-    for bc in 0:(NUM_BASE_CELLS - 1)
-        if _isBaseCellPentagon(bc)
-            push!(out, setH3Index(res, bc, CENTER_DIGIT))
-        end
+    err = getPentagons(res) do h
+        push!(out, h)
     end
+    err != E_SUCCESS && return (err, H3Index[])
     return (E_SUCCESS, out)
 end
 
 function res0CellCount_h3()::Int
     return NUM_BASE_CELLS
+end
+
+"""
+    getRes0Cells(op::F) -> H3Error where {F}
+
+Call `op(h)` for each resolution-0 base cell index (no result vector allocated).
+
+See also the H3 C API: [`getRes0Cells`](https://h3geo.org/docs/api/misc#getres0cells)
+"""
+function getRes0Cells(op::F)::H3Error where {F}
+    for bc in 0:(NUM_BASE_CELLS - 1)
+        h = H3_INIT
+        h = h3_set_mode(h, H3_CELL_MODE)
+        h = h3_set_base_cell(h, bc)
+        op(h)
+    end
+    return E_SUCCESS
 end
 
 """
@@ -542,11 +577,11 @@ See also the H3 C API: [`getRes0Cells`](https://h3geo.org/docs/api/misc#getres0c
 """
 function getRes0Cells()::Tuple{H3Error, Vector{H3Index}}
     out = Vector{H3Index}(undef, NUM_BASE_CELLS)
-    for bc in 0:(NUM_BASE_CELLS - 1)
-        h = H3_INIT
-        h = h3_set_mode(h, H3_CELL_MODE)
-        h = h3_set_base_cell(h, bc)
-        out[bc + 1] = h
+    iref = Ref(1)
+    getRes0Cells() do h
+        i = iref[]
+        @inbounds out[i] = h
+        iref[] = i + 1
     end
     return (E_SUCCESS, out)
 end
@@ -615,30 +650,24 @@ function constructCell(res::Int, baseCellNumber::Int, digits::Vector{Int})::Tupl
     return (E_SUCCESS, h)
 end
 
-"""
-    getIcosahedronFaces(h::H3Index) -> Tuple{H3Error, Vector{Int}}
-
-Get all icosahedron faces intersected by a cell.
-
-See also the H3 C API: [`getIcosahedronFaces`](https://h3geo.org/docs/api/inspection#geticosahedronfaces)
-"""
-function getIcosahedronFaces(h::H3Index)::Tuple{H3Error, Vector{Int}}
+# maxFaceCount is at most 5; fixed tuple avoids heap for callback enumeration
+function _getIcosahedronFaces_tuple(h::H3Index)::Tuple{H3Error, NTuple{5, Int}, Int}
     res = h3_get_resolution(h)
     isPent = isPentagon(h)
 
     if isPent && !isResolutionClassIII(res)
         childPentagon = makeDirectChild(h, 0)
-        return getIcosahedronFaces(childPentagon)
+        return _getIcosahedronFaces_tuple(childPentagon)
     end
 
     err, fijk = _h3ToFaceIjk(h)
     if err != E_SUCCESS
-        return (err, Int[])
+        return (err, ntuple(_ -> INVALID_FACE, 5), 0)
     end
 
     err2, faceCount = maxFaceCount(h)
     if err2 != E_SUCCESS
-        return (err2, Int[])
+        return (err2, ntuple(_ -> INVALID_FACE, 5), 0)
     end
 
     if isPent
@@ -649,7 +678,7 @@ function getIcosahedronFaces(h::H3Index)::Tuple{H3Error, Vector{Int}}
         fijkVerts, adjRes = _faceIjkToVerts(fijk, res)
     end
 
-    out = fill(INVALID_FACE, faceCount)
+    buf = ntuple(_ -> INVALID_FACE, 5)
 
     for i in 1:vertexCount
         vert = fijkVerts[i]
@@ -661,13 +690,53 @@ function getIcosahedronFaces(h::H3Index)::Tuple{H3Error, Vector{Int}}
 
         face = Int(vert.face)
         pos = 1
-        while pos <= faceCount && out[pos] != INVALID_FACE && out[pos] != face
+        while pos <= faceCount && buf[pos] != INVALID_FACE && buf[pos] != face
             pos += 1
         end
         if pos > faceCount
-            return (E_FAILED, Int[])
+            return (E_FAILED, ntuple(_ -> INVALID_FACE, 5), 0)
         end
-        out[pos] = face
+        buf = Base.setindex(buf, face, pos)
+    end
+    return (E_SUCCESS, buf, faceCount)
+end
+
+"""
+    getIcosahedronFaces(op::F, h::H3Index) -> H3Error where {F}
+
+Call `op(face)` for each assigned icosahedron face index (omits internal `INVALID_FACE` slots;
+order matches increasing slot index among valid faces). For the fixed-length `Vector{Int}` buffer
+including sentinel slots, use the `getIcosahedronFaces(h)` overload.
+
+See also the H3 C API: [`getIcosahedronFaces`](https://h3geo.org/docs/api/inspection#geticosahedronfaces)
+"""
+function getIcosahedronFaces(op::F, h::H3Index)::H3Error where {F}
+    err, buf, faceCount = _getIcosahedronFaces_tuple(h)
+    err != E_SUCCESS && return err
+    for j in 1:faceCount
+        v = buf[j]
+        if v != INVALID_FACE
+            op(v)
+        end
+    end
+    return E_SUCCESS
+end
+
+"""
+    getIcosahedronFaces(h::H3Index) -> Tuple{H3Error, Vector{Int}}
+
+Get all icosahedron faces intersected by a cell.
+
+See also the H3 C API: [`getIcosahedronFaces`](https://h3geo.org/docs/api/inspection#geticosahedronfaces)
+"""
+function getIcosahedronFaces(h::H3Index)::Tuple{H3Error, Vector{Int}}
+    err, buf, faceCount = _getIcosahedronFaces_tuple(h)
+    if err != E_SUCCESS
+        return (err, Int[])
+    end
+    out = Vector{Int}(undef, faceCount)
+    for j in 1:faceCount
+        @inbounds out[j] = buf[j]
     end
     return (E_SUCCESS, out)
 end
@@ -780,6 +849,51 @@ function uncompactCellsSize(compactedSet::Vector{H3Index}, res::Int)::Tuple{H3Er
     return (E_SUCCESS, numOut)
 end
 
+function _uncompactCellEach(op::F, h::H3Index, targetRes::Int)::H3Error where {F}
+    hRes = h3_get_resolution(h)
+    if hRes == targetRes
+        op(h)
+        return E_SUCCESS
+    end
+    isPent = isPentagon(h)
+    for d in 0:6
+        if isPent && d == 1
+            continue
+        end
+        child = makeDirectChild(h, d)
+        if h3_get_resolution(child) == targetRes
+            op(child)
+        else
+            err2 = _uncompactCellEach(op, child, targetRes)
+            err2 != E_SUCCESS && return err2
+        end
+    end
+    return E_SUCCESS
+end
+
+"""
+    uncompactCells(op::F, compactedSet::Vector{H3Index}, res::Int) -> H3Error where {F}
+
+Call `op(cell)` for each cell produced by uncompacting to resolution `res` (no result vector
+allocated by this path).
+
+See also the H3 C API: [`uncompactCells`](https://h3geo.org/docs/api/hierarchy#uncompactcells)
+"""
+function uncompactCells(op::F, compactedSet::Vector{H3Index}, res::Int)::H3Error where {F}
+    for h in compactedSet
+        if h == H3_NULL
+            continue
+        end
+        hRes = h3_get_resolution(h)
+        if res < hRes
+            return E_RES_MISMATCH
+        end
+        err = _uncompactCellEach(op, h, res)
+        err != E_SUCCESS && return err
+    end
+    return E_SUCCESS
+end
+
 """
     uncompactCells(compactedSet::Vector{H3Index}, res::Int) -> Tuple{H3Error, Vector{H3Index}}
 
@@ -793,44 +907,16 @@ function uncompactCells(compactedSet::Vector{H3Index}, res::Int)::Tuple{H3Error,
         return (err, H3Index[])
     end
     out = Vector{H3Index}(undef, totalSize)
-    idx = 1
-    for h in compactedSet
-        if h == H3_NULL
-            continue
-        end
-        hRes = h3_get_resolution(h)
-        if res < hRes
-            return (E_RES_MISMATCH, H3Index[])
-        end
-        _uncompactCellRecursive!(h, res, out, idx)
-        err2, childSize = cellToChildrenSize(h, res)
-        idx += childSize
+    idxref = Ref(1)
+    err2 = uncompactCells(compactedSet, res) do c
+        idx = idxref[]
+        @inbounds out[idx] = c
+        idxref[] = idx + 1
+    end
+    if err2 != E_SUCCESS
+        return (err2, H3Index[])
     end
     return (E_SUCCESS, out)
-end
-
-function _uncompactCellRecursive!(h::H3Index, targetRes::Int, out::Vector{H3Index}, startIdx::Int)
-    hRes = h3_get_resolution(h)
-    if hRes == targetRes
-        out[startIdx] = h
-        return
-    end
-    isPent = isPentagon(h)
-    idx = startIdx
-    for d in 0:6
-        if isPent && d == 1
-            continue
-        end
-        child = makeDirectChild(h, d)
-        if h3_get_resolution(child) == targetRes
-            out[idx] = child
-            idx += 1
-        else
-            err, childSize = cellToChildrenSize(child, targetRes)
-            _uncompactCellRecursive!(child, targetRes, out, idx)
-            idx += childSize
-        end
-    end
 end
 
 """
@@ -944,6 +1030,28 @@ function childPosToCell(childPos::Int64, parent::H3Index, childRes::Int)::Tuple{
 end
 
 """
+    cellToChildren(op::F, h::H3Index, childRes::Int) -> H3Error where {F}
+
+Call `op(child)` for each child of `h` at resolution `childRes` (no result vector allocated).
+
+See also the H3 C API: [`cellToChildren`](https://h3geo.org/docs/api/hierarchy#celltochildren)
+"""
+function cellToChildren(op::F, h::H3Index, childRes::Int)::H3Error where {F}
+    err, numChildren = cellToChildrenSize(h, childRes)
+    if err != E_SUCCESS
+        return err
+    end
+    for i in Int64(0):(numChildren - Int64(1))
+        err2, child = childPosToCell(i, h, childRes)
+        if err2 != E_SUCCESS
+            return err2
+        end
+        op(child)
+    end
+    return E_SUCCESS
+end
+
+"""
     cellToChildren(h::H3Index, childRes::Int) -> Tuple{H3Error, Vector{H3Index}}
 
 Get all children of a cell at a given finer resolution.
@@ -956,13 +1064,13 @@ function cellToChildren(h::H3Index, childRes::Int)::Tuple{H3Error, Vector{H3Inde
         return (err, H3Index[])
     end
     out = Vector{H3Index}(undef, numChildren)
-    for i in Int64(0):(numChildren - Int64(1))
-        err2, child = childPosToCell(i, h, childRes)
-        if err2 != E_SUCCESS
-            return (err2, H3Index[])
-        end
-        out[i + 1] = child
+    iref = Ref(1)
+    err2 = cellToChildren(h, childRes) do child
+        i = iref[]
+        @inbounds out[i] = child
+        iref[] = i + 1
     end
+    err2 != E_SUCCESS && return (err2, H3Index[])
     return (E_SUCCESS, out)
 end
 

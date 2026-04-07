@@ -415,6 +415,58 @@ function _cubeRound(fi::Float64, fj::Float64, fk::Float64)::Tuple{Int32, Int32, 
 end
 
 """
+    gridPathCells(op::F, start_::H3Index, end_::H3Index) -> H3Error where {F}
+
+Call `op(cell)` for each cell on the line between `start_` and `end_` (no result vector allocated).
+
+See also the H3 C API: [`gridPathCells`](https://h3geo.org/docs/api/traversal#gridpathcells)
+"""
+function gridPathCells(op::F, start_::H3Index, end_::H3Index)::H3Error where {F}
+    err, dist = gridDistance(start_, end_)
+    if err != E_SUCCESS
+        return err
+    end
+
+    if dist == 0
+        op(start_)
+        return E_SUCCESS
+    end
+
+    err2, endIjk = _cellToLocalIjk(start_, end_)
+    if err2 != E_SUCCESS
+        return err2
+    end
+
+    startCube = ijkToCube(CoordIJK(0, 0, 0))
+    endCubeCopy = ijkToCube(endIjk)
+
+    iStep = Float64(endCubeCopy.i - startCube.i) / Float64(dist)
+    jStep = Float64(endCubeCopy.j - startCube.j) / Float64(dist)
+    kStep = Float64(endCubeCopy.k - startCube.k) / Float64(dist)
+
+    numCells = dist + 1
+
+    for n in Int64(0):(numCells - Int64(1))
+        ci = Float64(startCube.i) + iStep * Float64(n)
+        cj = Float64(startCube.j) + jStep * Float64(n)
+        ck = Float64(startCube.k) + kStep * Float64(n)
+
+        ri, rj, rk = _cubeRound(ci, cj, ck)
+
+        ijk = cubeToIjk(CoordIJK(ri, rj, rk))
+        ij = ijkToIj(ijk)
+
+        err3, cell = localIjToCell(start_, ij, UInt32(0))
+        if err3 != E_SUCCESS
+            return err3
+        end
+        op(cell)
+    end
+
+    return E_SUCCESS
+end
+
+"""
     gridPathCells(start_::H3Index, end_::H3Index) -> (H3Error, Vector{H3Index})
 
 Compute the line of cells between `start_` and `end_` using cube coordinate
@@ -429,40 +481,17 @@ function gridPathCells(start_::H3Index, end_::H3Index)::Tuple{H3Error, Vector{H3
     end
 
     if dist == 0
-        return (E_SUCCESS, [start_])
+        return (E_SUCCESS, H3Index[start_])
     end
-
-    err2, endIjk = _cellToLocalIjk(start_, end_)
-    if err2 != E_SUCCESS
-        return (err2, H3Index[])
-    end
-
-    startCube = ijkToCube(CoordIJK(0, 0, 0))
-    endCubeCopy = ijkToCube(endIjk)
-
-    iStep = Float64(endCubeCopy.i - startCube.i) / Float64(dist)
-    jStep = Float64(endCubeCopy.j - startCube.j) / Float64(dist)
-    kStep = Float64(endCubeCopy.k - startCube.k) / Float64(dist)
 
     numCells = dist + 1
     path = Vector{H3Index}(undef, numCells)
-
-    for n in Int64(0):(numCells - Int64(1))
-        ci = Float64(startCube.i) + iStep * Float64(n)
-        cj = Float64(startCube.j) + jStep * Float64(n)
-        ck = Float64(startCube.k) + kStep * Float64(n)
-
-        ri, rj, rk = _cubeRound(ci, cj, ck)
-
-        ijk = cubeToIjk(CoordIJK(ri, rj, rk))
-        ij = ijkToIj(ijk)
-
-        err3, cell = localIjToCell(start_, ij, UInt32(0))
-        if err3 != E_SUCCESS
-            return (err3, H3Index[])
-        end
-        path[n + 1] = cell
+    iref = Ref(1)
+    err2 = gridPathCells(start_, end_) do cell
+        i = iref[]
+        @inbounds path[i] = cell
+        iref[] = i + 1
     end
-
+    err2 != E_SUCCESS && return (err2, H3Index[])
     return (E_SUCCESS, path)
 end
