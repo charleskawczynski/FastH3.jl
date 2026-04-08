@@ -7,4 +7,5 @@ using FastH3
     include("test_layer3_4.jl")
     include("test_callbacks.jl")
     include("test_quality.jl")
+    include("test_extensions.jl")
 end

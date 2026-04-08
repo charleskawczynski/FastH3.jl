@@ -53,6 +53,7 @@ Pages = [
     "api/directed_edges.md",
     "api/vertexes.md",
     "api/measurement.md",
+    "extensions.md",
 ]
 Depth = 2
 ```

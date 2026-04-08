@@ -3,7 +3,7 @@ using FastH3
 
 makedocs(;
     sitename="FastH3.jl",
-    modules=[FastH3],
+    modules=[FastH3, FastH3.FastH3Extension],
     format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", nothing) == "true",
         canonical="https://charleskawczynski.github.io/FastH3.jl",
@@ -21,6 +21,7 @@ makedocs(;
             "Vertexes" => "api/vertexes.md",
             "Measurement" => "api/measurement.md",
         ],
+        "Extensions" => "extensions.md",
         "Internals" => "api/internals.md",
     ],
     doctest=true,

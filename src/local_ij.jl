@@ -152,7 +152,7 @@ function _cellToLocalIjk(origin::H3Index, h::H3Index)::Tuple{H3Error, CoordIJK}
     if originBC != hBC
         dir = _getBaseCellDirection(originBC, hBC)
         if dir == INVALID_DIGIT
-            return (E_FAILED, CoordIJK())
+            return (E_DOMAIN, CoordIJK())
         end
     end
 
@@ -165,7 +165,7 @@ function _cellToLocalIjk(origin::H3Index, h::H3Index)::Tuple{H3Error, CoordIJK}
     if dir != CENTER_DIGIT
         baseCellRotations = Int(baseCellNeighbor60CCWRots[originBC + 1][Int(dir) + 1])
         if baseCellRotations < 0
-            return (E_FAILED, CoordIJK())
+            return (E_BASE_CELL_DOMAIN, CoordIJK())
         end
     end
 
@@ -177,7 +177,7 @@ function _cellToLocalIjk(origin::H3Index, h::H3Index)::Tuple{H3Error, CoordIJK}
             originLeading = _h3LeadingNonZeroDigit(origin)
             pentRot = PENTAGON_ROTATIONS[Int(originLeading) + 1, Int(dir) + 1]
             if pentRot < 0
-                return (E_FAILED, CoordIJK())
+                return (E_DELETED_DIGIT, CoordIJK())
             end
             for _ in 1:pentRot
                 hIjk = _ijkRotate60ccw(hIjk)
@@ -206,12 +206,12 @@ function _cellToLocalIjk(origin::H3Index, h::H3Index)::Tuple{H3Error, CoordIJK}
 
             revDir = _getBaseCellDirection(hBC, originBC)
             if revDir == INVALID_DIGIT
-                return (E_FAILED, CoordIJK())
+                return (E_PENTAGON, CoordIJK())
             end
 
             pentagonRotations = PENTAGON_ROTATIONS_REVERSE[Int(revDir) + 1, Int(pentSearchDir) + 1]
             if pentagonRotations < 0
-                return (E_FAILED, CoordIJK())
+                return (E_DELETED_DIGIT, CoordIJK())
             end
         end
     end

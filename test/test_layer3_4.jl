@@ -403,7 +403,7 @@ end
         end_   = FastH3.H3Index(0x0851d9b1bfffffff)
 
         err, _ = FastH3.gridPathCellsSize(start_, end_)
-        @test_broken err == FastH3.E_FAILED
+        @test_broken err == FastH3.E_DOMAIN
     end
 
     @testset "gridPathCells_pentagonReverseInterpolation" begin

@@ -1,0 +1,8 @@
+[deps]
+ArgParse = "c7e460c6-2fb9-53a9-8c5b-16f535851c63"
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+FastH3 = "a23a4b7e-97d2-4b3a-8f5c-6e9d0f2a1b3c"
+ProfileCanvas = "efd6af41-a80b-495e-886c-e51b0c7d77a3"
+
+[sources]
+FastH3 = {path = ".."}
